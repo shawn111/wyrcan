@@ -1,0 +1,73 @@
+#!/bin/bash -e
+
+function usage() {
+  bold=$(tput bold)
+  norm=$(tput sgr0)
+ 
+  echo "usage: $0 [-k|--kernel path] [-i|--initrd path] name[:tag|@digest]" 1>&2
+  echo ""
+  echo "NOTE: This command requires ${bold}root${norm} or ${bold}buildah unshare${norm}."
+  exit 2
+}
+
+function unknown() {
+  echo "unknown option: $1"
+  echo ""
+  usage
+}
+
+ZIP=cat
+while true; do
+  case "$1" in
+    -k | --kernel) KERNEL=$2; shift 2;;
+    -i | --initrd) INITRD=$2; shift 2;;
+    -z | --zip) ZIP=$2; shift 2;;
+    -h | --help) usage;;
+    --) shift; break;;
+    --*) unknown $1;;
+    -*) unknown $1;;
+    *) break;;
+  esac
+done
+
+shift $((OPTIND-1))
+[ -z "$1" ] && usage
+
+# Generate a UUID to avoid collisions.
+CNTNR=`cat /proc/sys/kernel/random/uuid`
+
+# Mount the container image.
+buildah from --name "$CNTNR" "$1"
+export SRC=`buildah mount $CNTNR`
+
+# Setup cleanup traps
+function cleanup() {
+  buildah unmount $CNTNR
+  buildah rm $CNTNR
+  rm -f $KERNEL $INITRD
+}
+trap cleanup EXIT 
+
+# Extract the kernel.
+if [ -n "$KERNEL" ]; then
+  k=`ls -t $SRC/boot/vmlinu* | head -n 1`
+  cp "$k" "$KERNEL"
+fi
+
+# Build the initrd.
+if [ -n "$INITRD" ]; then
+  # Remove all kernels.
+  rm -f $SRC/vmlinu*
+  rm -f $SRC/boot/vmlinu*
+
+  # Remove all initrds.
+  rm -f $SRC/initrd.img*
+  rm -f $SRC/boot/initrd.img*
+
+  # Build the initrd.
+  (cd $SRC && find . | sort | cpio --quiet -H newc -o) | $ZIP > "$INITRD"
+fi
+
+trap - EXIT
+buildah unmount $CNTNR
+buildah rm $CNTNR
