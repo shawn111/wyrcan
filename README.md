@@ -1,74 +1,222 @@
-# Wyrcan ~ Memory-Resident, Container Bootloader
+# Wyrcan ~ The Container Bootloader
 
-Wyrcan is an immutable, memory-resident, container bootloader. Think of it
-something like iPXE, except that the only configuration is the name of the
-container you want to boot.
+Wyrcan is a bootloader that **boots** into a container. That's all it does.
 
-Containers, at heart, are a packaging system. They bundle up just enough OS to
-run an application. Why not boot an OS in the same way?
+But of course, that's not the only thing that Wyrcan *implies*. Using Wyrcan
+to boot a container also means that you can use a tried and trusted software
+packaging ecosystem to have a bare-metal OS that is:
 
-And, yes, I said "boot." No, Wycan doesn't launch a container underneath
-another OS. It actually **boots** the contents of a container.
+  * Immutable: All changes to the OS are done by iterating on the container
+    pipeline. Consuming those changes means a simple reboot. You can schedule
+    reboots to make sure you always have the latest OS.
 
-# Why is Wyrcan Useful?
+  * Stateless: Booting a container with Wyrcan means that nothing is installed
+    on the disk. There is no state to manage except the state you put into
+    your container. You never have to worry about whether packages are updated.
+    And if all your mounts of local storage are `noexec`, you can just reboot
+    when compromised.
 
-Modern application development basically follows this workflow:
+  * Memory-Resident: The full operating system is resident in RAM. That means
+    it is fast. However, you can also set up swap in your container so that
+    unused pages are written to disk, saving memory for your application.
 
-1. Build an application using git.
-2. Push your branch to GitHub, GitLab, etc.
-3. CI/CD assembles a container of your application to deploy.
-4. Schedule the application to be deployed with k8s.
+  * Declarative: Your bare-metal operating system is developed using the same
+    delarative tooling that you have come to expect from the container
+    development pipeline. But your OS config in git. Host it in your favorite
+    git forge (GitHub, GitLab, Bitbucket, etc). Build the images
+    automatically. Host them in your favorite container repo.
 
-But bare metal servers still live in the dark ages. Typically, you have to:
+# Getting Started
 
-1. Get an ISO.
-2. Somehow attach it to a physical server (or a cloud).
-3. Install the OS.
-4. Manage the OS (often using tools such as Chef, Puppet or Ansible).
+There are three basic steps to getting things working:
 
-Wouldn't it be great if we could just have declarative, immutable
-infrastructure for bare metal too? Now you can!
+1. Build and push a *bootable* container.
+2. Confingure `wyrcan.img=CONTAINER` to point to the container.
+3. Boot Wyrcan.
 
-# How Does Wyrcan Work?
+From there, Wyrcan will do the rest.
 
-## Booting Wyrcan
+## Build and Push a Bootable Container
 
-The first step is to get Wyrcan up and running on your hardware. This should
-be easy. All the files you need to do this are available directly from GitLab.
-There are two options;
+What is a *bootable* container? A *bootable* container is a container that
+includes a kernel (vmlinuz + modules) as well as an init system (usually
+`systemd`) properly linked to `/init`.
 
-1. Download the Wyrcan ISO and burn it onto a CD or copy it onto a USB storage
-   device. Your physical server can now boot from this device. Upon booting for
-   the first time, you will be given a boot menu. You can edit the kernel's
-   cmdline by pressing `e`. Add any boot parameters you need as well as (where
-   `CONTAINER` is the container image you want to boot):
+The steps for this depend on the container's distribution. However, it boils
+down to basically three steps.
 
-   ```
-   wyrcan.img=CONTAINER
-   ```
+1. Inhereit from a base image.
+2. Install the kernel and the init system.
+3. Link to the init system.
 
-   This will boot the specified container image. If you encounter problems, just
-   reboot! No permanent changes were made to your system. If you want to persist
-   the configuration on this system, just add these to the `cmdline`:
+After these minimal requirements are met, you can customize the container to
+meet your specifications. You will probably build your container with
+something like `podman build .` or `docker build .`. Then you can use `podman
+push ...` or `docker push ...` to save it in your favorite container repo.
 
-   ```
-   wyrcan.img=CONTAINER wyrcan.efi=write
-   ```
+Note that besides the additional requirements outlined above, you use your
+*existing* container process.
 
-   This will save your `cmdline` in an EFI variable. From now on, when you boot
-   the Wyrcan ISO, it will use your `cmdline` automatically. So long as you
-   boot from the Wyrcan ISO, the boot process will be fully automated.
+### Examples
+#### Debian
 
-2. Load Wyrcan using a network boot. You can download the `kernel` and
-   `initrd` from GitLab and put them on a TFTP server for PXE booting. Or,
-   alternatively, you can use iPXE and download the `kernel` and `initrd`
-   directly from GitLab during boot.
+```Dockerfile
+FROM debian:latest
+RUN apt update
+RUN apt install -y linux-image-generic systemd
+RUN ln /bin/systemd /init
+```
 
-   With this method, you can just set the kernel `cmdline` directly. No need
-   to persist anything to EFI. Just set the `wyrcan.img=...` value along with
-   anything else you need for boot to work.
+# Configure and Boot Wyrcan
 
-## But what does Wyrcan Do?
+From here we basically want to boot Wyrcan with `wyrcan.img=CONTAINER` in the
+kernel `cmdline`. How we accomplish this depends on how are going to boot
+Wyrcan. There are two boot methods available: direct boot and ISO boot.
+
+## Direct Boot
+
+The direct boot scheme basically refers to any process that will boot a Linux
+`kernel` and `initrd` directly. This includes:
+
+  * PXE / TFTP (i.e. "netboot")
+  * iPXE
+  * QEMU
+
+The precise details of how to do this depend on the system. However, they all
+have the following three options in common: `kernel`, `initrd` (also called
+`initramfs`) and `cmdline` (also called `options` or `append`, for historical
+reasons).
+
+You basically point the `kernel` and `initrd` options to
+[wyrcan.kernel][wyrcan.kernel] and [wyrcan.initrd][wyrcan.initrd],
+respectively, and fill in an appropriate `cmdline` value.  We reccomend the
+following `cmdline`, however it can be customized to your needs:
+
+```
+loglevel=3 systemd.show_status=error wyrcan.img=CONTAINER
+```
+
+### Examples
+#### QEMU
+
+```sh
+$ curl -L 'https://gitlab.com/wyrcan/wyrcan/-/jobs/artifacts/main/raw/wyrcan.kernel?job=build' \
+  > wyrcan.kernel
+
+$ curl -L 'https://gitlab.com/wyrcan/wyrcan/-/jobs/artifacts/main/raw/wyrcan.initrd?job=build' \
+  > wyrcan.initrd
+
+$ qemu-system-x86_64 \
+  -append "loglevel=3 systemd.show_status=error console=ttyS0 wyrcan.img=CONTAINER" \
+  -kernel wyrcan.kernel \
+  -initrd wyrcan.initrd \
+  -enable-kvm \
+  -nographic \
+  -m 4G
+```
+
+#### iPXE
+
+iPXE only supports a limited number of TLS cipher suites. As of this writing,
+iPXE cannot download from GitHub. But it **can** download from GitLab. On
+clouds like Equinix Metal, you can specify a URL to the iPXE file you want to
+boot and configure the bare metal to always boot that URL. Put the following
+file in a GitLab repo and put the raw URL to it in your cloud provider. Now
+your boot is completely automated.
+
+```ipxe
+#!ipxe
+
+set kernel https://gitlab.com/wyrcan/wyrcan/-/jobs/artifacts/main/raw/wyrcan.kernel?job=build
+set initrd https://gitlab.com/wyrcan/wyrcan/-/jobs/artifacts/main/raw/wyrcan.initrd?job=build
+
+kernel ${kernel} loglevel=3 systemd.show_status=error console=ttyS0 wyrcan.img=CONTAINER
+initrd ${initrd}
+boot
+```
+
+## ISO Boot
+
+The ISO boot scheme differs from the direct boot scheme in that since we are
+booting Wyrcan from an ISO (either as an image or as burned onto a CD, DVD or
+USB storage device), we cannot specify the `cmdline` directly.  Therefore we
+can either specify it manually or by persisting it into an EFI variable.
+
+### Manual
+
+This method is the most direct. However, it lacks automation. It is, however,
+useful for exploration and testing.
+
+1. Download the [Wyrcan ISO][wyrcan.iso].
+2. Burn it onto a CD, DVD or USB storage device (optional).
+3. Boot it.
+4. When you get to the bootloader menu, press `e`. This brings up the editor
+   for the `cmdline`.
+5. Edit the `cmdline` to meet your needs. Make sure to specify
+   `wyrcan.img=CONTAINER`.
+6. Press `ENTER` or `RETURN` to boot.
+
+From here you should see Wyrcan download the specified container and boot it.
+
+While this works great, we need a way to automate the boot process.
+
+### Automated
+
+In order to automate the ISO boot process, we need a way to persist the
+`cmdline`. In order to do this, just add `wyrcan.efi=write` to the `cmdline`.
+Wyrcan will validate your configuration and then store your `cmdline` in an
+EFI variable. Once this is complete, Wyrcan will immediately reboot to show
+you the fully automated process.
+
+Once the `cmdline` is written to an EFI variable, you no longer need to edit
+the `cmdline` manually. Just let Wyrcan boot from the default option. Wyrcan
+will find your previously saved `cmdline` and boot it. Just leave the ISO
+connected to the device and Wyrcan will do the right thing every time you
+reboot.
+
+#### ⚠⚠⚠ WARNING ⚠⚠⚠
+
+Some older systems have EFI firmware bugs that can cause the hardware to be
+bricked if you write a custom EFI variable. This is a clear violation of the
+EFI specification, but is rather unfortunate. It is unlikely that you have
+such hardware, particularly if you are using Wyrcan on a server platform.
+However, you should be aware that there is some minor risk that using the EFI
+variable automation flow could brick your system.
+
+### Examples
+
+#### QEMU (EFI-only)
+
+This is slightly more complex only because you have to be sure that qemu is
+using EFI. Wyrcan does not support BIOS-only systems.
+
+1. Download the [Wyrcan ISO][wyrcan.iso] image.
+
+2. Duplicate `OVMF_VARS.fd`. This is what gives you the ability to save EFI
+   variables. This file should be included with your distribution if you have
+   `qemu` installed. For details, see your distribution's documentation.
+
+3. Boot the ISO using EFI (be sure to allocate enough RAM). Like above, the
+   `OVMF_CODE.fd` file should be included with your distribution.
+
+```sh
+$ curl -L 'https://gitlab.com/wyrcan/wyrcan/-/jobs/artifacts/main/raw/wyrcan.iso?job=build' \
+  > wyrcan.iso
+
+$ cp /usr/share/edk2/ovmf/OVMF_VARS.fd myvars.fd
+
+$ qemu-system-x86_64 \
+  -drive if=pflash,format=raw,readonly,file=/usr/share/edk2/ovmf/OVMF_CODE.fd \
+  -drive if=pflash,format=raw,file=myvars.fd \
+  -cdrom wyrcan.iso \
+  -enable-kvm \
+  -nographic \
+  -m 4G
+```
+
+# Frequently Asked Questions (FAQ)
+
+## How does Wyrcan work?
 
 Wyrcan boots a tiny build of Linux. Once network is up, Wyrcan downloads the
 specified container image. Next, Wyrcan converts the container image to a
@@ -76,10 +224,10 @@ specified container image. Next, Wyrcan converts the container image to a
 besides the kernel. Finally, Wyrcan boots the resulting `kernel`/`initrd`
 using the `kexec` facility.
 
-Yes, the **actual** kernel from the container image is booted. Once the
+Yes, the *actual* kernel from the container image is booted. Once the
 container has booted, nothing from Wyrcan stays resident in memory.
 
-## Wait... Memory-resident... Are you using all my RAM!?
+## Wait... Memory-Resident... Are you using all my RAM!?
 
 Yes. But not really. Modern operating systems always try to use all your RAM.
 It is simply more efficient.
@@ -91,71 +239,25 @@ tmpfs mounts all over the system. All of this is quite normal.
 
 It is true that the booted container is entirely memory resident. But it is
 also true that its unused pages will get swapped to disk if you set up a swap
-partition or file on the disk inside your container. So under either system,
-the used data stays in RAM and the unused data ends up in the swap on disk.
+partition or swap file on the disk inside your container. So under either
+system, the used data stays in RAM and the unused data ends up in the swap on
+disk.
 
 Also... Have you seen servers these days? You can get 2TiB of memory in
 bare-metal cloud servers. You'll be fine.
 
-## So, what does all this mean?
+## Why is Wyrcan hosted on GitLab?
 
-It means you can build a fully-automated, highly-scalable, bare-metal
-infrastructure using just your favorite git forge and your favorite bare-metal
-hosting provide.
+Unfortunately, iPXE has limited support for TLS cipher suites. The consequence
+of this is that iPXE can download the Wyrcan `kernel` and `initrd` files
+directly from GitLab but not from GitHub. I haven't tried other git forges.
 
-1. Build your OSes as containers. Check in the Dockerfiles. Have the images
-   build automatically in the standard CI/CD pipeline workflows.
+# Download Links
 
-2. Put any ancillary infrastructure files, like iPXE scripts, in git too.
+* [wyrcan.kernel][wyrcan.kernel]
+* [wyrcan.initrd][wyrcan.initrd]
+* [wyrcan.iso][wyrcan.iso]
 
-3. Point your bare-metal instances at Wyrcan using iPXE or a standard ISO
-   file. Point your Wyrcan instances at your containers.
-
-4. Way to go! You have a fully automated, declarative infrastructure with no
-   managment servers in the middle. And it is all just containers.
-
-## Can I try Wyrcan in QEMU?
-
-Yes! In fact, we test with QEMU. So this should all work pretty well. You can
-choose how you want to test Wyrcan. You can either load the `kernel` and
-`initrd` directly or you can boot the ISO image.
-
-### Direct Boot
-
-1. Download the `kernel` and `initrd` image.
-
-2. Run them in QEMU directly (be sure to allocate enough RAM).
-
-```sh
-$ qemu-system-x86_64 \
-  -append "loglevel=3 systemd.show_status=error console=ttyS0 wyrcan.img=CONTAINER" \
-  -kernel ./kernel \
-  -initrd ./initrd \
-  -enable-kvm \
-  -nographic \
-  -m 4G
-```
-
-### ISO Boot
-
-This method is slightly more complex only because you have to be sure that qemu is using EFI.
-
-1. Download the `wyrcan.iso` image.
-
-2. Duplicate `OVMF_VARS.fd`. This is what gives you the ability to save EFI
-   variables. This file should be included with your distribution if you have
-   `qemu` installed. For details, see your distribution's documentation.
-
-3. Boot the ISO using EFI (be sure to allocate enough RAM). Like above, the
-   `OVMF_CODE.fd` file should be included with your distribution.
-
-```sh
-$ cp /usr/share/edk2/ovmf/OVMF_VARS.fd myvars.fd
-$ qemu-system-x86_64 \
-  -drive if=pflash,format=raw,readonly,file=/usr/share/edk2/ovmf/OVMF_CODE.fd \
-  -drive if=pflash,format=raw,file=./myvars.fd \
-  -cdrom ./wyrcan.iso \
-  -enable-kvm \
-  -nographic \
-  -m 4G
-```
+[wyrcan.kernel]: https://gitlab.com/wyrcan/wyrcan/-/jobs/artifacts/main/raw/wyrcan.kernel?job=build
+[wyrcan.initrd]: https://gitlab.com/wyrcan/wyrcan/-/jobs/artifacts/main/raw/wyrcan.initrd?job=build
+[wyrcan.iso]: https://gitlab.com/wyrcan/wyrcan/-/jobs/artifacts/main/raw/wyrcan.iso?job=build
