@@ -6,7 +6,7 @@ ZIP="xz -9 -C crc32"
 [ "$1" != "build" ] && UNSHARE="buildah unshare"
 
 if [ "$1" == "clean" ]; then
-  rm -f kernel initrd wyrcan.iso
+  rm -f wyrcan.kernel wyrcan.initrd wyrcan.iso
   exit 0
 fi
 
@@ -24,10 +24,10 @@ function cleanup() {
 
 # Extract the kernel and initrd.
 $UNSHARE container/wyrcan-extract \
-    -k kernel \
-    -i initrd \
+    -k wyrcan.kernel \
+    -i wyrcan.initrd \
     -z "$ZIP" \
     "$IMAGE"
 
 # Build the ISO
-./iso.sh kernel initrd wyrcan.iso
+./iso.sh wyrcan.kernel wyrcan.initrd wyrcan.iso

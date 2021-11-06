@@ -11,6 +11,6 @@ build:
     - bash -x ./build.sh build
   artifacts:
     paths:
-      - kernel
-      - initrd
+      - wyrcan.kernel
+      - wyrcan.initrd
       - wyrcan.iso
