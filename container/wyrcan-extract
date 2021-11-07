@@ -56,15 +56,6 @@ fi
 
 # Build the initrd.
 if [ -n "$INITRD" ]; then
-  # Remove all kernels.
-  rm -f $SRC/vmlinu*
-  rm -f $SRC/boot/vmlinu*
-
-  # Remove all initrds.
-  rm -f $SRC/initrd.img*
-  rm -f $SRC/boot/initrd.img*
-
-  # Build the initrd.
   (cd $SRC && find . | sort | cpio --quiet -H newc -o) | $ZIP > "$INITRD"
 fi
 
