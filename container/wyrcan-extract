@@ -4,9 +4,14 @@ function usage() {
   bold=$(tput bold)
   norm=$(tput sgr0)
  
-  echo "usage: $0 [-k|--kernel path] [-i|--initrd path] name[:tag|@digest]" 1>&2
-  echo ""
-  echo "NOTE: This command requires ${bold}root${norm} or ${bold}buildah unshare${norm}."
+  echo "usage: $0 [OPTIONS] name[:tag|@digest]" >&2
+  echo "" >&2
+  echo "-s, --shrink            Remove unneeded files from the container" >&2
+  echo "-k, --kernel PATH       Where to store the extracted kernel" >&2
+  echo "-i, --initrd PATH       Where to store the generated initrd" >&2
+  echo "-z, --zip    CMD        The command to use for compressing the initrd" >&2
+  echo "" >&2
+  echo "NOTE: Requires ${bold}root${norm} or ${bold}buildah unshare${norm}." >&2
   exit 2
 }
 
@@ -19,6 +24,7 @@ function unknown() {
 ZIP=cat
 while true; do
   case "$1" in
+    -s | --shrink) SHRINK=y; shift 1;;
     -k | --kernel) KERNEL=$2; shift 2;;
     -i | --initrd) INITRD=$2; shift 2;;
     -z | --zip) ZIP=$2; shift 2;;
@@ -52,6 +58,17 @@ trap cleanup EXIT
 if [ -n "$KERNEL" ]; then
   k=`ls -t $SRC/boot/vmlinu* | head -n 1`
   cp "$k" "$KERNEL"
+fi
+
+# Minimize the container.
+if [ -n "$SHRINK" ]; then
+  # Remove all kernels.
+  rm -f $SRC/vmlinu*
+  rm -f $SRC/boot/vmlinu*
+
+  # Remove all initrds.
+  rm -f $SRC/initrd.img*
+  rm -f $SRC/boot/initrd.img*
 fi
 
 # Build the initrd.

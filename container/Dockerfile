@@ -1,10 +1,12 @@
 FROM debian:latest
 
-RUN apt update
-RUN apt install -y linux-image-generic systemd
-RUN apt install -y ca-certificates
-RUN apt install -y kexec-tools
-RUN apt install -y buildah
+RUN apt-get update && \
+    apt-get install --no-install-recommends -y linux-image-generic && \
+    apt-get install --no-install-recommends -y ca-certificates && \
+    apt-get install --no-install-recommends -y kexec-tools && \
+    apt-get install --no-install-recommends -y buildah && \
+    apt-get install --no-install-recommends -y systemd && \
+    rm -rf /var/lib/apt/lists/*
 
 RUN systemctl enable systemd-resolved.service systemd-networkd.service
 RUN systemctl mask systemd-logind.service serial-getty@.service getty@.service

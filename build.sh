@@ -27,6 +27,7 @@ $UNSHARE container/wyrcan-extract \
     -k wyrcan.kernel \
     -i wyrcan.initrd \
     -z "$ZIP" \
+    -s \
     "$IMAGE"
 
 # Build the ISO
