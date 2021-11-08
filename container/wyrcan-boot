@@ -105,7 +105,8 @@ done
 
 # Extract the kernel and initrd
 echo "Preparing to boot $slug..." >&2
-wyrcan-extract --kernel /tmp/kernel --initrd /tmp/initrd "$slug"
+wyrcan-extract --kernel /tmp/kernel --initrd /tmp/initrd --cmdline /tmp/cmdline "$slug"
+extra=`cat /tmp/cmdline`
 
 # Set the EFI variable.
 if [ "$efi" == write ]; then
@@ -116,4 +117,4 @@ fi
 
 # Extract the kernel and initramfs and boot them.
 echo "Booting $slug..." >&2
-exec kexec -fixy --initrd=/tmp/initrd --append="${cmdline}" /tmp/kernel
+exec kexec -fixy --initrd=/tmp/initrd --append="${extra} ${cmdline}" /tmp/kernel

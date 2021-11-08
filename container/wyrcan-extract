@@ -7,9 +7,10 @@ function usage() {
   echo "usage: $0 [OPTIONS] name[:tag|@digest]" >&2
   echo "" >&2
   echo "-s, --shrink            Remove unneeded files from the container" >&2
-  echo "-k, --kernel PATH       Where to store the extracted kernel" >&2
-  echo "-i, --initrd PATH       Where to store the generated initrd" >&2
-  echo "-z, --zip    CMD        The command to use for compressing the initrd" >&2
+  echo "-k, --kernel  PATH      Where to store the extracted kernel" >&2
+  echo "-i, --initrd  PATH      Where to store the generated initrd" >&2
+  echo "-c, --cmdline PATH      Where to store the extracted cmdline" >&2
+  echo "-z, --zip     CMD       The command to use for compressing the initrd" >&2
   echo "" >&2
   echo "NOTE: Requires ${bold}root${norm} or ${bold}buildah unshare${norm}." >&2
   exit 2
@@ -27,6 +28,7 @@ while true; do
     -s | --shrink) SHRINK=y; shift 1;;
     -k | --kernel) KERNEL=$2; shift 2;;
     -i | --initrd) INITRD=$2; shift 2;;
+    -c | --cmdline) CMDLINE=$2; shift 2;;
     -z | --zip) ZIP=$2; shift 2;;
     -h | --help) usage;;
     --) shift; break;;
@@ -56,8 +58,13 @@ trap cleanup EXIT
 
 # Extract the kernel.
 if [ -n "$KERNEL" ]; then
-  k=`ls -t $SRC/boot/vmlinu* | head -n 1`
-  cp "$k" "$KERNEL"
+  ls -lh $SRC/boot/
+  cp -P $SRC/boot/wyrcan.kernel "$KERNEL"
+fi
+
+# Extract the cmdline.
+if [ -n "$CMDLINE" ]; then
+  cp -P $SRC/boot/wyrcan.cmdline "$CMDLINE" || touch "$CMDLINE"
 fi
 
 # Minimize the container.
