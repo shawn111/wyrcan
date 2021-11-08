@@ -58,7 +58,6 @@ trap cleanup EXIT
 
 # Extract the kernel.
 if [ -n "$KERNEL" ]; then
-  ls -lh $SRC/boot/
   cp -P $SRC/boot/wyrcan.kernel "$KERNEL"
 fi
 
