@@ -68,18 +68,22 @@ Linux distributions. All of these are available in the GitLab Container
 Registry. New features and distributions, as well as bug fixes, are welcome!
 
   1. Debian
+
     * Container Image: `registry.gitlab.com/wyrcan/debian`
     * Dockerfile: https://gitlab.com/wyrcan/debian
 
   2. Fedora
+
     * Container Image: `registry.gitlab.com/wyrcan/fedora`
     * Dockerfile: https://gitlab.com/wyrcan/fedora
 
   3. Ubuntu
+
     * Container Image: `registry.gitlab.com/wyrcan/ubuntu`
     * Dockerfile: https://gitlab.com/wyrcan/ubuntu
 
   4. Arch Linux
+
     * Container Image: `registry.gitlab.com/wyrcan/archlinux`
     * Dockerfile: https://gitlab.com/wyrcan/archlinux
 
