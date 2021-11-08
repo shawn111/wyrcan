@@ -118,4 +118,5 @@ fi
 
 # Extract the kernel and initramfs and boot them.
 echo "Booting $slug..." >&2
+echo "cmdline: ${extra} ${cmdline}" >&2
 exec kexec -fixy --initrd=/tmp/initrd --append="${extra} ${cmdline}" /tmp/kernel
