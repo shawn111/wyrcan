@@ -67,25 +67,25 @@ The Wyrcan project provides a number of *bootable* containers for mainstream
 Linux distributions. All of these are available in the GitLab Container
 Registry. New features and distributions, as well as bug fixes, are welcome!
 
-  1. Debian
+1. Debian
 
-    * Container Image: `registry.gitlab.com/wyrcan/debian`
-    * Dockerfile: https://gitlab.com/wyrcan/debian
+  * Container Image: `registry.gitlab.com/wyrcan/debian`
+  * Dockerfile: https://gitlab.com/wyrcan/debian
 
-  2. Fedora
+2. Fedora
 
-    * Container Image: `registry.gitlab.com/wyrcan/fedora`
-    * Dockerfile: https://gitlab.com/wyrcan/fedora
+  * Container Image: `registry.gitlab.com/wyrcan/fedora`
+  * Dockerfile: https://gitlab.com/wyrcan/fedora
 
-  3. Ubuntu
+3. Ubuntu
 
-    * Container Image: `registry.gitlab.com/wyrcan/ubuntu`
-    * Dockerfile: https://gitlab.com/wyrcan/ubuntu
+  * Container Image: `registry.gitlab.com/wyrcan/ubuntu`
+  * Dockerfile: https://gitlab.com/wyrcan/ubuntu
 
-  4. Arch Linux
+4. Arch Linux
 
-    * Container Image: `registry.gitlab.com/wyrcan/archlinux`
-    * Dockerfile: https://gitlab.com/wyrcan/archlinux
+  * Container Image: `registry.gitlab.com/wyrcan/archlinux`
+  * Dockerfile: https://gitlab.com/wyrcan/archlinux
 
 # Configure and Boot Wyrcan
 
