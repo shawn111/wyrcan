@@ -31,23 +31,27 @@ packaging ecosystem to have a bare-metal OS that is:
 There are three basic steps to getting things working:
 
 1. Build and push a *bootable* container.
-2. Confingure `wyrcan.img=CONTAINER` to point to the container.
+2. Configure `wyrcan.img=CONTAINER` to point to the container.
 3. Boot Wyrcan.
 
 From there, Wyrcan will do the rest.
 
 ## Build and Push a Bootable Container
 
-What is a *bootable* container? A *bootable* container is a container that
-includes a kernel (vmlinuz + modules) as well as an init system (usually
-`systemd`) properly linked to `/init`.
+What is a *bootable* container? A *bootable* container is a normal container
+with a few additional customizations:
 
-The steps for this depend on the container's distribution. However, it boils
-down to basically three steps.
+1. A kernel is installed and hard-linked to `/boot/wyrcan.kernel`.
 
-1. Inhereit from a base image.
-2. Install the kernel and the init system.
-3. Link to the init system.
+2. An init system (usually systemd) is installed and hard-linked to `/init`.
+
+3. (Optional) All necessary hardware support packages are installed. This may
+   include firmware, userspace drivers or enabling software. Often nothing is
+   expressly required for this step as installing the kernel will pull in all
+   the necessary dependencies.
+
+4. (Optional) The container may defined required kernel cmdline options by
+   specifying them in `/boot/wyrcan.cmdline`.
 
 After these minimal requirements are met, you can customize the container to
 meet your specifications. You will probably build your container with
@@ -58,14 +62,26 @@ Note that besides the additional requirements outlined above, you use your
 *existing* container process.
 
 ### Examples
-#### Debian
 
-```Dockerfile
-FROM debian:latest
-RUN apt update
-RUN apt install -y linux-image-generic systemd
-RUN ln /bin/systemd /init
-```
+The Wyrcan project provides a number of *bootable* containers for mainstream
+Linux distributions. All of these are available in the GitLab Container
+Registry. New features and distributions, as well as bug fixes, are welcome!
+
+  1. Debian
+    * Container Image: `registry.gitlab.com/wyrcan/debian`
+    * Dockerfile: https://gitlab.com/wyrcan/debian
+
+  2. Fedora
+    * Container Image: `registry.gitlab.com/wyrcan/fedora`
+    * Dockerfile: https://gitlab.com/wyrcan/fedora
+
+  3. Ubuntu
+    * Container Image: `registry.gitlab.com/wyrcan/ubuntu`
+    * Dockerfile: https://gitlab.com/wyrcan/ubuntu
+
+  4. Arch Linux
+    * Container Image: `registry.gitlab.com/wyrcan/archlinux`
+    * Dockerfile: https://gitlab.com/wyrcan/archlinux
 
 # Configure and Boot Wyrcan
 
@@ -232,16 +248,17 @@ container has booted, nothing from Wyrcan stays resident in memory.
 Yes. But not really. Modern operating systems always try to use all your RAM.
 It is simply more efficient.
 
-Applications and data that are disk-resident and are frequently used are
-cached in memory. Memory pages that aren't frequently used get swapped to
-disk. In fact, on any modern `systemd`-based Linux OS there are a variety of
-tmpfs mounts all over the system. All of this is quite normal.
+In a traditional boot, the OS starts out on disk. As the OS and its
+applications are loaded, the data is transferred from disk to memory pages.
+When those applications exit, the pages often stay cached in memory. Those
+pages are often written back to disk in a swap file or partition.
 
-It is true that the booted container is entirely memory resident. But it is
-also true that its unused pages will get swapped to disk if you set up a swap
-partition or swap file on the disk inside your container. So under either
-system, the used data stays in RAM and the unused data ends up in the swap on
-disk.
+In Wycan, the OS starts out in memory. It is true that this requires more
+memory to boot than a traditional system. However, if you boot a container
+that enables a swap file or partition on disk, the unused portion of the OS
+will be paged out to disk just like a normal OS. So the end result is somewhat
+similar. However, with Wyrcan, you don't have to manage the state of an OS on
+disk. And that is a big win.
 
 Also... Have you seen servers these days? You can get 2TiB of memory in
 bare-metal cloud servers. You'll be fine.
@@ -250,7 +267,10 @@ bare-metal cloud servers. You'll be fine.
 
 Unfortunately, iPXE has limited support for TLS cipher suites. The consequence
 of this is that iPXE can download the Wyrcan `kernel` and `initrd` files
-directly from GitLab but not from GitHub. I haven't tried other git forges.
+directly from GitLab. Other git forges I tried didn't work.
+
+Also, GitLab is open source and has a built-in container registry. There's a
+lot to like!
 
 # Download Links
 
