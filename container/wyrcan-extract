@@ -58,12 +58,21 @@ trap cleanup EXIT
 
 # Extract the kernel.
 if [ -n "$KERNEL" ]; then
-  cp -P $SRC/boot/wyrcan.kernel "$KERNEL"
+  if [ -f $SRC/boot/wyrcan.kernel ]; then
+    cp -P $SRC/boot/wyrcan.kernel "$KERNEL"
+  else
+    echo "Unable to find /boot/wyrcan.kernel!" >&2
+    exit 1
+  fi
 fi
 
 # Extract the cmdline.
 if [ -n "$CMDLINE" ]; then
-  cp -P $SRC/boot/wyrcan.cmdline "$CMDLINE" || touch "$CMDLINE"
+  if [ -f $SRC/boot/wyrcan.cmdline ]; then
+    cp -P $SRC/boot/wyrcan.cmdline "$CMDLINE"
+  else
+    touch "$CMDLINE"
+  fi
 fi
 
 # Minimize the container.
