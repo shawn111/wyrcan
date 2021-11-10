@@ -12,9 +12,6 @@ RUN cd /boot; ln vmlinuz-* wyrcan.kernel
 RUN ln /bin/systemd /init
 
 # Enable networking.
-# Try to autoconfig all interfaces.
-# Network is online when ANY iface is online.
-COPY systemd-networkd-wait-online.service.override /etc/systemd/system/systemd-networkd-wait-online.service.d/override.conf
 COPY autoconf.network /etc/systemd/network/autoconf.network
 RUN systemctl enable systemd-resolved.service systemd-networkd.service
 
