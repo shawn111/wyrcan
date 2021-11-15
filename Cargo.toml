@@ -1,0 +1,27 @@
+[package]
+name = "wyrcan"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+serde = { version = "^1.0.130", features = ["derive"], default-features = false }
+structopt = { version = "^0.3.25", default-features = false }
+ureq = { version = "*", features = ["json"] }
+indicatif = "^0.16.2"
+anyhow = "^1.0.45"
+flate2 = "^1.0.22"
+ring = "^0.16.20"
+libc = "^0.2.107"
+regex = "^1.5.4"
+cpio = "^0.2.0"
+tar = "^0.4.37"
+log = "^0.4.14"
+
+[profile.dev]
+opt-level = 3
+
+[profile.release]
+codegen-units = 1
+incremental = false
+opt-level = 3
+lto = true
