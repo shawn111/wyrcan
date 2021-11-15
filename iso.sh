@@ -34,7 +34,7 @@ mmd -i $IMG ::loader
 mcopy -i $IMG $TMP/loader.conf ::loader/
 
 # Create the bootloader entry and add it to the $IMG
-echo "title Wyrcan ~ Memory-Resident, Container Bootloader" >> $TMP/wyrcan.conf
+echo "title Wyrcan ~ The Container Bootloader" >> $TMP/wyrcan.conf
 echo "linux  /kernel" >> $TMP/wyrcan.conf
 echo "initrd /initrd" >> $TMP/wyrcan.conf
 echo "options loglevel=3 systemd.show_status=error" >> $TMP/wyrcan.conf

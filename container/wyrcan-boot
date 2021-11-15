@@ -96,17 +96,9 @@ fi
 
 # TODO: do strict sanity checking on the slug format...
 
-# Download the container.
-echo "Fetching $slug..." >&2
-seconds=5
-while ! buildah pull "$slug"; do
-  sleep $seconds
-  seconds=$(($seconds * 2))
-done
-
-# Extract the kernel and initrd
+# Make the kernel and initrd
 echo "Preparing to boot $slug..." >&2
-wyrcan-extract --kernel /tmp/kernel --initrd /tmp/initrd --cmdline /tmp/cmdline "$slug"
+wyrcan convert --kernel /tmp/kernel --initrd /tmp/initrd --cmdline /tmp/cmdline "$slug"
 extra=`cat /tmp/cmdline`
 
 # Set the EFI variable.
@@ -119,4 +111,5 @@ fi
 # Extract the kernel and initramfs and boot them.
 echo "Booting $slug..." >&2
 echo "cmdline: ${extra} ${cmdline}" >&2
-exec kexec -fixy --initrd=/tmp/initrd --append="${extra} ${cmdline}" /tmp/kernel
+wyrcan kexec --kernel /tmp/kernel --initrd=/tmp/initrd --cmdline="${extra} ${cmdline}"
+exec shutdown -r

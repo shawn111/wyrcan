@@ -1,14 +1,48 @@
 default:
-  image: debian:latest
   tags:
     - linux
 
-build:
+stages:
+  - command
+  - container
+  - images
+
+command:
+  stage: command
+  image: rust:1.56.1
+  before_script:
+    - rm rust-toolchain.toml
+  script:
+    - RUSTC_BOOTSTRAP=1 cargo build --release
+    - mv target/release/wyrcan wyrcan
+    - strip ./wyrcan
+  artifacts:
+    paths:
+      - wyrcan
+
+container:
+  stage: container
+  image: docker:latest
+  services:
+    - docker:dind
+  script:
+    - cp wyrcan container/wyrcan
+    - chmod g-w,o-w container/*
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker build -t $CI_REGISTRY/$CI_PROJECT_PATH:latest container/
+    - docker push $CI_REGISTRY/$CI_PROJECT_PATH:latest
+
+images:
+  stage: images
+  image: debian:latest
   before_script:
     - apt update
-    - apt install -y buildah mtools xorriso xz-utils ca-certificates dosfstools libarchive-tools cpio
+    - apt install -y mtools xorriso xz-utils ca-certificates dosfstools libarchive-tools cpio
   script:
-    - bash -x ./build.sh build
+    - ./wyrcan convert --kernel wyrcan.kernel --initrd wyrcan.initrd $CI_REGISTRY/$CI_PROJECT_PATH:latest
+    - xz -T0 -9 -C crc32 wyrcan.initrd
+    - mv wyrcan.initrd.xz wyrcan.initrd
+    - ./iso.sh wyrcan.kernel wyrcan.initrd wyrcan.iso
   artifacts:
     paths:
       - wyrcan.kernel
