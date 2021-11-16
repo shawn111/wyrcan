@@ -5,6 +5,7 @@ Wants=network-online.target
 
 [Service]
 Type=oneshot
+ExecStart=/usr/bin/networkctl list
 ExecStart=/usr/local/bin/wyrcan-boot
 StandardInput=tty
 TTYVHangup=yes

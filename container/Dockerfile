@@ -10,6 +10,7 @@ RUN cd /boot; ln -s vmlinuz-* wyrcan.kernel
 RUN ln -s /bin/systemd /init
 
 # Enable networking.
+COPY autoconf.override /etc/systemd/system/systemd-networkd-wait-online.service.d/override.conf
 COPY autoconf.network /etc/systemd/network/autoconf.network
 RUN systemctl enable systemd-resolved.service systemd-networkd.service
 

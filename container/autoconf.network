@@ -5,6 +5,3 @@ Type=ether
 [Network]
 IPv6AcceptRA=yes
 DHCP=yes
-
-[Link]
-RequiredForOnline=no
