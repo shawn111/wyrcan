@@ -5,8 +5,8 @@ use std::io::Write;
 use std::str::FromStr;
 
 use anyhow::Result;
-use serde::Deserialize;
 use ring::digest::*;
+use serde::Deserialize;
 
 use crate::iotools::Validatable;
 

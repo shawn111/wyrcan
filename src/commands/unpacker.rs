@@ -85,7 +85,10 @@ impl Unpacker {
         };
 
         // Set up the reader chain for each bundle
-        let all = threads.into_iter().zip(self.layers.iter().rev()).enumerate();
+        let all = threads
+            .into_iter()
+            .zip(self.layers.iter().rev())
+            .enumerate();
         for (level, (thread, layer)) in all {
             let (size, src) = thread.join().unwrap()?;
             progress.inc_length(size);
@@ -98,7 +101,7 @@ impl Unpacker {
             bundles.push(Bundle {
                 unpacker: self,
                 archive: Archive::new(src),
-                level
+                level,
             })
         }
 
