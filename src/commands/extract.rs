@@ -38,10 +38,10 @@ impl<O: Write> LookAside<O> {
     }
 
     fn glance(&mut self, header: &Header) -> Result<Option<&mut dyn Write>> {
-        let mode: libc::mode_t = header.mode()?.try_into()?;
+        let mode: libc::mode_t = header.mode()?;
         let path = header.path()?;
 
-        if path.as_ref() == &self.symlink {
+        if path.as_ref() == self.symlink {
             match S_IFMT & mode {
                 S_IFREG => return Ok(Some(&mut self.output)),
 
@@ -88,7 +88,7 @@ impl<K: Write, I: Write, C: Write> Command for Extract<K, I, C> {
                 let mut entry = entry?;
                 let head = entry.header().clone();
                 let path = entry.path()?;
-                let mode: libc::mode_t = head.mode()?.try_into()?;
+                let mode: libc::mode_t = head.mode()?;
                 let size = head.size()?.try_into()?;
 
                 // Create an entry in the cpio.

@@ -34,7 +34,7 @@ impl Image {
     }
 
     pub fn layers(&self) -> Result<Vec<super::Layer>> {
-        const DEFAULT: &'static str = "application/vnd.docker.image.rootfs.diff.tar.gzip";
+        const DEFAULT: &str = "application/vnd.docker.image.rootfs.diff.tar.gzip";
 
         Ok(match &self.manifest {
             Manifest::DockerV1(m) => m

@@ -69,7 +69,7 @@ impl Read for Reader {
 
         while mark < buf.len() {
             let (buffer, mut start) = self.pop()?;
-            if buffer.len() == 0 {
+            if buffer.is_empty() {
                 self.current = Some((buffer, start));
                 break;
             }

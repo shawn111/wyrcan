@@ -191,9 +191,9 @@ impl std::fmt::Display for Digest {
 impl Validatable for Digest {
     fn validate(&self) -> bool {
         match &self.0 {
-            Inner::Sha256(w, h) => &w.clone().finish().as_ref() == h,
-            Inner::Sha384(w, h) => &w.clone().finish().as_ref() == h,
-            Inner::Sha512(w, h) => &w.clone().finish().as_ref() == h,
+            Inner::Sha256(w, h) => w.clone().finish().as_ref() == h,
+            Inner::Sha384(w, h) => w.clone().finish().as_ref() == h,
+            Inner::Sha512(w, h) => w.clone().finish().as_ref() == h,
         }
     }
 }

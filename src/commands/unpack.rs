@@ -43,13 +43,13 @@ impl Command for Unpack {
                 let mut entry = entry?;
                 let path = entry.path()?.as_ref().to_owned();
                 let head = entry.header();
-                let mode = libc::mode_t::try_from(head.mode()?)?;
+                let mode = head.mode()?;
 
                 // Validate path to prevent escaping chroot
                 for component in path.components() {
                     match component {
                         Component::ParentDir | Component::RootDir | Component::Prefix(..) => {
-                            return Err(anyhow!("disallowed component in {:?}", &path).into());
+                            return Err(anyhow!("disallowed component in {:?}", &path));
                         }
 
                         _ => continue,
@@ -69,7 +69,7 @@ impl Command for Unpack {
                 match S_IFMT & mode {
                     S_IFDIR => {
                         DirBuilder::new()
-                            .mode(mode.into())
+                            .mode(mode)
                             .recursive(false)
                             .create(into)?;
                     }
@@ -78,7 +78,7 @@ impl Command for Unpack {
                         let mut file = OpenOptions::new()
                             .create_new(true)
                             .append(true)
-                            .mode(mode.into())
+                            .mode(mode)
                             .open(into)?;
 
                         std::io::copy(&mut entry, &mut file)?;
@@ -113,7 +113,7 @@ impl Command for Unpack {
                         if let Some(from) = head.link_name()? {
                             std::os::unix::fs::symlink(from, into)?;
                         } else {
-                            return Err(anyhow!("link has no target: {:?}", head).into());
+                            return Err(anyhow!("link has no target: {:?}", head));
                         }
                     }
 
@@ -121,7 +121,7 @@ impl Command for Unpack {
                         warn!("skipping unix socket: {:?}", &path)
                     }
 
-                    _ => return Err(anyhow!("unknown mode ({:o}) on {:?}", mode, &path).into()),
+                    _ => return Err(anyhow!("unknown mode ({:o}) on {:?}", mode, &path)),
                 }
             }
         }

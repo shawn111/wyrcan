@@ -22,7 +22,7 @@ pub struct Bundle<'a, T: Read> {
 }
 
 impl<'a, T: Read> Bundle<'a, T> {
-    pub fn entries<'b>(&'b mut self) -> Result<impl Iterator<Item = Result<Entry<'b, impl Read>>>> {
+    pub fn entries(&mut self) -> Result<impl Iterator<Item = Result<Entry<impl Read>>>> {
         Ok(self
             .archive
             .entries()?
@@ -64,6 +64,8 @@ impl Unpacker {
 
     pub fn bundles(&self) -> Result<Vec<Bundle<impl Read>>> {
         // Start ALL downloads in separate threads
+        // We collect here to start all the threads.
+        #[allow(clippy::needless_collect)]
         let threads = self
             .layers
             .iter()
