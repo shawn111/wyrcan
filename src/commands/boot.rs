@@ -124,7 +124,7 @@ impl Command for Boot {
                 let mut answer = String::new();
                 std::io::stdin().read_line(&mut answer)?;
 
-                if answer == "yes" {
+                if answer.trim() == "yes" {
                     // Remove the immutability flag.
                     let mut file = File::open(&var)?;
                     let (.., mut flags) = FS_IOC_GETFLAGS.ioctl(&file)?;
@@ -184,7 +184,7 @@ impl Command for Boot {
             let mut answer = String::new();
             std::io::stdin().read_line(&mut answer)?;
 
-            if answer == "yes" {
+            if answer.trim() == "yes" {
                 let mut args = cmdline.clone();
                 args.push(format!("wyrcan.img={}", img));
                 let args = args.join(" ");
@@ -194,10 +194,9 @@ impl Command for Boot {
                 file.write_all(&Self::FLAG)?;
                 file.write_all(args.as_bytes())?;
                 file.flush()?;
-
-                std::thread::sleep(std::time::Duration::from_millis(3000));
             }
 
+            std::thread::sleep(std::time::Duration::from_millis(3000));
             return reboot();
         }
 
