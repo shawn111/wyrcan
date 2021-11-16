@@ -16,7 +16,7 @@ pub trait Command {
 }
 
 #[derive(StructOpt, Debug)]
-#[structopt(about = "the container bootloader")]
+#[structopt(about = "The Container Bootloader")]
 pub enum Main {
     #[structopt(setting(structopt::clap::AppSettings::Hidden))]
     Boot(boot::Boot),
