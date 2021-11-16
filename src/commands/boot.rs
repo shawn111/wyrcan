@@ -114,7 +114,7 @@ impl Command for Boot {
         // If the cmdline says to clear EFI, do it...
         if let Some(Efi::Clear) = efi {
             if var.exists() {
-                print!("{}", Self::WARNING);
+                println!("{}", Self::WARNING);
                 let mut answer = String::new();
                 std::io::stdin().read_line(&mut answer)?;
 
@@ -149,7 +149,7 @@ impl Command for Boot {
         let img = match img {
             Some(img) => img,
             None => {
-                print!("{}", Self::NOIMG);
+                println!("{}", Self::NOIMG);
                 let mut answer = String::new();
                 std::io::stdin().read_line(&mut answer)?;
 
@@ -172,7 +172,7 @@ impl Command for Boot {
 
         // If specified, save the command line to EFI.
         if let Some(Efi::Write) = efi {
-            print!("{}", Self::WARNING);
+            println!("{}", Self::WARNING);
             let mut answer = String::new();
             std::io::stdin().read_line(&mut answer)?;
 
