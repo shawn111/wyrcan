@@ -3,6 +3,7 @@
 
 use std::ffi::CString;
 use std::fs::File;
+use std::io::Error;
 use std::os::unix::prelude::*;
 use std::path::PathBuf;
 
@@ -15,15 +16,19 @@ use structopt::StructOpt;
 pub struct Kexec {
     /// The path to the kernel to load
     #[structopt(long, short)]
-    kernel: PathBuf,
+    pub kernel: PathBuf,
 
     /// The path to the initrd to load
     #[structopt(long, short)]
-    initrd: PathBuf,
+    pub initrd: PathBuf,
 
     /// The kernel command line to use after reboot
     #[structopt(long, short)]
-    cmdline: String,
+    pub cmdline: String,
+
+    /// Reboot immediately (does not do a clean shutdown)
+    #[structopt(long, short)]
+    pub reboot: bool,
 }
 
 impl Command for Kexec {
@@ -68,6 +73,14 @@ impl Command for Kexec {
         if retval > -4096isize as usize {
             let code = -(retval as isize) as i32;
             return Err(std::io::Error::from_raw_os_error(code).into());
+        }
+
+        if self.reboot {
+            unsafe { libc::sync() };
+            let ret = unsafe { libc::reboot(libc::LINUX_REBOOT_CMD_KEXEC) };
+            if ret < 0 {
+                return Err(Error::last_os_error().into());
+            }
         }
 
         Ok(())

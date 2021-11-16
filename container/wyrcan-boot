@@ -109,5 +109,4 @@ fi
 # Extract the kernel and initramfs and boot them.
 echo "Booting $slug..." >&2
 echo "cmdline: ${extra} ${cmdline}" >&2
-wyrcan kexec --kernel /tmp/kernel --initrd=/tmp/initrd --cmdline="${extra} ${cmdline}"
-systemctl kexec
+wyrcan kexec --reboot --kernel /tmp/kernel --initrd=/tmp/initrd --cmdline="${extra} ${cmdline}"
