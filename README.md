@@ -6,15 +6,12 @@ But of course, that's not the only thing that Wyrcan *implies*. Using Wyrcan
 to boot a container also means that you can use a tried and trusted software
 packaging ecosystem to have a bare-metal OS that is:
 
-  * Immutable: All changes to the OS are done by iterating on the container
-    pipeline. Consuming those changes means a simple reboot. You can schedule
-    reboots to make sure you always have the latest OS.
-
   * Stateless: Booting a container with Wyrcan means that nothing is installed
     on the disk. There is no state to manage except the state you put into
-    your container. You never have to worry about whether packages are updated.
-    And if all your mounts of local storage are `noexec`, you can just reboot
-    when compromised.
+    your container. You never have to worry about whether packages are updated:
+    you can schedule reboots to make sure you always have the latest OS. And if
+    all your mounts of local storage are `noexec`, you can just reboot when
+    compromised.
 
   * Memory-Resident: The full operating system is resident in RAM. That means
     it is fast. However, you can also set up swap in your container so that
