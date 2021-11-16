@@ -76,7 +76,7 @@ impl Unpacker {
 
         // Create the progress bar
         let progress = if self.progress {
-            let tmpl = "{elapsed:>4} {wide_bar} {bytes:>12} {bytes_per_sec:>12} {eta:>4}";
+            let tmpl = "{elapsed:>4} {eta:>4} {wide_bar} {bytes:>12} {bytes_per_sec:>12}";
             let pb = ProgressBar::new(0);
             pb.set_style(ProgressStyle::default_bar().template(tmpl));
             pb
