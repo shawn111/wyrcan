@@ -9,11 +9,6 @@ UUID="6987e713-a5ff-4ec2-ad55-c1fca471ed2d"
 NAME="CmdLine"
 BASE="/sys/firmware/efi/efivars"
 
-function cleanup() {
-  reboot
-}
-trap cleanup EXIT
-
 function readefi() {
   cat $BASE/$NAME-$UUID | tail -c +5
 }
@@ -50,6 +45,7 @@ if [ "$efi" == clear ]; then
     rm -f $BASE/$NAME-$UUID
   fi
 
+  systemctl reboot
   exit 0
 fi
 
@@ -91,6 +87,7 @@ if [ -z "$slug" ]; then
   echo "      variables. Using wyrcan.efi=clear can brick them." >&2
   echo "" >&2
   read -n 1 -s -r -p "Press any key to reboot."
+  systemctl reboot
   exit 1
 fi
 
@@ -105,6 +102,7 @@ extra=`cat /tmp/cmdline`
 if [ "$efi" == write ]; then
   echo "Saving \"${cmdline} wyrcan.img=${slug}\" to $NAME ($UUID)..." >&2
   printf "\\x07\\x00\\x00\\x00%s wyrcan.img=%s" "$cmdline" "$slug" > $BASE/$NAME-$UUID
+  systemctl reboot
   exit 0
 fi
 
@@ -112,4 +110,4 @@ fi
 echo "Booting $slug..." >&2
 echo "cmdline: ${extra} ${cmdline}" >&2
 wyrcan kexec --kernel /tmp/kernel --initrd=/tmp/initrd --cmdline="${extra} ${cmdline}"
-exec shutdown -r
+systemctl kexec
