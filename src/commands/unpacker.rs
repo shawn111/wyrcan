@@ -48,20 +48,17 @@ pub struct Unpacker {
     progress: bool,
     already: RwLock<Vec<HashSet<PathBuf>>>,
     layers: Vec<Layer>,
-    image: String,
 }
 
 impl Unpacker {
     pub fn new(image: &Image, progress: bool) -> Result<Self> {
         let layers = image.clone().layers()?;
         let already = RwLock::new(Vec::new());
-        let image = format!("{}", image);
 
         Ok(Self {
             progress,
             already,
             layers,
-            image,
         })
     }
 
@@ -79,9 +76,8 @@ impl Unpacker {
 
         // Create the progress bar
         let progress = if self.progress {
-            let tmpl = "{prefix} {elapsed:>4} {wide_bar} {bytes:>12} {bytes_per_sec:>12} {eta:>4}";
+            let tmpl = "{elapsed:>4} {wide_bar} {bytes:>12} {bytes_per_sec:>12} {eta:>4}";
             let pb = ProgressBar::new(0);
-            pb.set_prefix(self.image.clone());
             pb.set_style(ProgressStyle::default_bar().template(tmpl));
             pb
         } else {
