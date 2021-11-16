@@ -19,6 +19,5 @@ RUN systemctl mask systemd-logind.service console-getty.service serial-getty@.se
 
 # Set up the wyrcan boot service
 COPY wyrcan.service /etc/systemd/system/wyrcan.service
-COPY wyrcan-boot /usr/local/bin/wyrcan-boot
 COPY wyrcan /usr/local/bin/wyrcan
 RUN systemctl enable wyrcan.service

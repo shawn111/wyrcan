@@ -3,6 +3,7 @@
 
 use structopt::StructOpt;
 
+mod boot;
 mod convert;
 mod extract;
 mod kexec;
@@ -17,6 +18,8 @@ pub trait Command {
 #[derive(StructOpt, Debug)]
 #[structopt(about = "the container bootloader")]
 pub enum Main {
+    #[structopt(setting(structopt::clap::AppSettings::Hidden))]
+    Boot(boot::Boot),
     Tags(tags::Tags),
     Kexec(kexec::Kexec),
     Unpack(unpack::Unpack),
@@ -26,6 +29,7 @@ pub enum Main {
 impl Command for Main {
     fn execute(self) -> anyhow::Result<()> {
         match self {
+            Self::Boot(cmd) => cmd.execute(),
             Self::Tags(cmd) => cmd.execute(),
             Self::Kexec(cmd) => cmd.execute(),
             Self::Unpack(cmd) => cmd.execute(),

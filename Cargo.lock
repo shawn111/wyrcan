@@ -177,6 +177,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "iocuddle"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d8972d5be69940353d5347a1344cb375d9b457d6809b428b05bb1ca2fb9ce007"
+
+[[package]]
 name = "itoa"
 version = "0.4.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -668,6 +674,7 @@ dependencies = [
  "cpio",
  "flate2",
  "indicatif",
+ "iocuddle",
  "libc",
  "log",
  "regex",
