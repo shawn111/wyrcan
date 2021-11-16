@@ -114,8 +114,6 @@ impl Command for Boot {
         }
         cmdline = cmdline.into_iter().filter(|x| !skip.contains(x)).collect();
 
-        eprintln!("{:?}", efi);
-
         // If the cmdline says to clear EFI, do it...
         if let Some(Efi::Clear) = efi {
             if var.exists() {
@@ -139,12 +137,10 @@ impl Command for Boot {
         }
 
         // If no boot image was specified, look in EFI.
-        eprintln!("{} && {} ({:?})", img.is_none(), var.exists(), var);
         if img.is_none() && var.exists() {
             let bytes = std::fs::read(&var)?;
             let ecl = std::str::from_utf8(&bytes[4..])?; // Skip the prefix
             for arg in ecl.split_whitespace() {
-                eprintln!("arg: {}", arg);
                 match arg.find('=').map(|i| arg.split_at(i)) {
                     Some(("wyrcan.img", v)) => img = Some(v[1..].into()),
                     _ => cmdline.push(arg.into()),
@@ -184,15 +180,19 @@ impl Command for Boot {
             std::io::stdin().read_line(&mut answer)?;
 
             if answer.trim() == "yes" {
+                // Prepare the args
                 let mut args = cmdline.clone();
                 args.push(format!("wyrcan.img={}", img));
                 let args = args.join(" ");
 
+                // Prepare the output
+                let mut data = Vec::new();
+                data.write_all(&Self::FLAG)?;
+                data.write_all(args.as_bytes())?;
+
+                // Write out the efi variable
                 println!("Writing: {}", args);
-                let mut file = File::create(&var)?;
-                file.write_all(&Self::FLAG)?;
-                file.write_all(args.as_bytes())?;
-                file.flush()?;
+                std::fs::write(&var, &data)?;
             }
 
             std::thread::sleep(std::time::Duration::from_millis(3000));
