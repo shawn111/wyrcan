@@ -17,7 +17,7 @@ pub struct Image {
 
 impl Display for Image {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}/{}", self.repo, self.tag)
+        write!(f, "{}:{}", self.repo, self.tag)
     }
 }
 
