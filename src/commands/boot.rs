@@ -27,6 +27,7 @@ fn reboot() -> anyhow::Result<()> {
     Ok(())
 }
 
+#[derive(Copy, Clone, Debug)]
 enum Efi {
     Write,
     Clear,
@@ -51,7 +52,9 @@ hardware defects triggered by this action.
 
 ⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠ WARNING ⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠
 
-Would you like to proceed? [yes/no] "###;
+Would you like to proceed? [yes/no]
+
+"###;
 
     const NOIMG: &'static str = r###"
 No container image target (wyrcan.img=IMG) could be found!
@@ -84,7 +87,8 @@ Wyrcan. Except for wyrcan.img=IMG, all cmdline arguments are optional.
 
       quiet wyrcan.skip=quiet
 
-Press enter or return to reboot."###;
+Press enter or return to reboot.
+"###;
 }
 
 impl Command for Boot {
@@ -111,6 +115,8 @@ impl Command for Boot {
         }
         cmdline = cmdline.into_iter().filter(|x| !skip.contains(x)).collect();
 
+        eprintln!("{:?}", efi);
+
         // If the cmdline says to clear EFI, do it...
         if let Some(Efi::Clear) = efi {
             if var.exists() {
@@ -134,10 +140,12 @@ impl Command for Boot {
         }
 
         // If no boot image was specified, look in EFI.
+        eprintln!("{} && {} ({:?})", img.is_none(), var.exists(), var);
         if img.is_none() && var.exists() {
             let bytes = std::fs::read(&var)?;
             let ecl = std::str::from_utf8(&bytes[4..])?; // Skip the prefix
             for arg in ecl.split_whitespace() {
+                eprintln!("arg: {}", arg);
                 match arg.find('=').map(|i| arg.split_at(i)) {
                     Some(("wyrcan.img", v)) => img = Some(v[1..].into()),
                     _ => cmdline.push(arg.into()),
@@ -186,6 +194,8 @@ impl Command for Boot {
                 file.write_all(&Self::FLAG)?;
                 file.write_all(args.as_bytes())?;
                 file.flush()?;
+
+                std::thread::sleep(std::time::Duration::from_millis(3000));
             }
 
             return reboot();
