@@ -141,9 +141,11 @@ impl Command for Boot {
             let bytes = std::fs::read(&var)?;
             let ecl = std::str::from_utf8(&bytes[4..])?; // Skip the prefix
             for arg in ecl.split_whitespace() {
+                let arg = arg.to_string();
                 match arg.find('=').map(|i| arg.split_at(i)) {
                     Some(("wyrcan.img", v)) => img = Some(v[1..].into()),
-                    _ => cmdline.push(arg.into()),
+                    _ if !cmdline.contains(&arg) => cmdline.push(arg),
+                    _ => (),
                 }
             }
         }
