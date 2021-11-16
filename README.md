@@ -38,9 +38,9 @@ From there, Wyrcan will do the rest.
 What is a *bootable* container? A *bootable* container is a normal container
 with a few additional customizations:
 
-1. A kernel is installed and hard-linked to `/boot/wyrcan.kernel`.
+1. A kernel is installed and symlinked to `/boot/wyrcan.kernel`.
 
-2. An init system (usually systemd) is installed and hard-linked to `/init`.
+2. An init system (usually systemd) is installed and symlinked to `/init`.
 
 3. (Optional) All necessary hardware support packages are installed. This may
    include firmware, userspace drivers or enabling software. Often nothing is
@@ -117,10 +117,10 @@ loglevel=3 systemd.show_status=error wyrcan.img=CONTAINER
 #### QEMU
 
 ```sh
-$ curl -L 'https://gitlab.com/wyrcan/wyrcan/-/jobs/artifacts/main/raw/wyrcan.kernel?job=build' \
+$ curl -L 'https://gitlab.com/wyrcan/wyrcan/-/jobs/artifacts/main/raw/wyrcan.kernel?job=images' \
   > wyrcan.kernel
 
-$ curl -L 'https://gitlab.com/wyrcan/wyrcan/-/jobs/artifacts/main/raw/wyrcan.initrd?job=build' \
+$ curl -L 'https://gitlab.com/wyrcan/wyrcan/-/jobs/artifacts/main/raw/wyrcan.initrd?job=images' \
   > wyrcan.initrd
 
 $ qemu-system-x86_64 \
@@ -144,8 +144,8 @@ your boot is completely automated.
 ```ipxe
 #!ipxe
 
-set kernel https://gitlab.com/wyrcan/wyrcan/-/jobs/artifacts/main/raw/wyrcan.kernel?job=build
-set initrd https://gitlab.com/wyrcan/wyrcan/-/jobs/artifacts/main/raw/wyrcan.initrd?job=build
+set kernel https://gitlab.com/wyrcan/wyrcan/-/jobs/artifacts/main/raw/wyrcan.kernel?job=images
+set initrd https://gitlab.com/wyrcan/wyrcan/-/jobs/artifacts/main/raw/wyrcan.initrd?job=images
 
 kernel ${kernel} loglevel=3 systemd.show_status=error console=ttyS0 wyrcan.img=CONTAINER
 initrd ${initrd}
@@ -217,7 +217,7 @@ using EFI. Wyrcan does not support BIOS-only systems.
    `OVMF_CODE.fd` file should be included with your distribution.
 
 ```sh
-$ curl -L 'https://gitlab.com/wyrcan/wyrcan/-/jobs/artifacts/main/raw/wyrcan.iso?job=build' \
+$ curl -L 'https://gitlab.com/wyrcan/wyrcan/-/jobs/artifacts/main/raw/wyrcan.iso?job=images' \
   > wyrcan.iso
 
 $ cp /usr/share/edk2/ovmf/OVMF_VARS.fd myvars.fd
@@ -279,6 +279,6 @@ lot to like!
 * [wyrcan.initrd][wyrcan.initrd]
 * [wyrcan.iso][wyrcan.iso]
 
-[wyrcan.kernel]: https://gitlab.com/wyrcan/wyrcan/-/jobs/artifacts/main/raw/wyrcan.kernel?job=build
-[wyrcan.initrd]: https://gitlab.com/wyrcan/wyrcan/-/jobs/artifacts/main/raw/wyrcan.initrd?job=build
-[wyrcan.iso]: https://gitlab.com/wyrcan/wyrcan/-/jobs/artifacts/main/raw/wyrcan.iso?job=build
+[wyrcan.kernel]: https://gitlab.com/wyrcan/wyrcan/-/jobs/artifacts/main/raw/wyrcan.kernel?job=images
+[wyrcan.initrd]: https://gitlab.com/wyrcan/wyrcan/-/jobs/artifacts/main/raw/wyrcan.initrd?job=images
+[wyrcan.iso]: https://gitlab.com/wyrcan/wyrcan/-/jobs/artifacts/main/raw/wyrcan.iso?job=images
