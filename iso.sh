@@ -37,7 +37,7 @@ mcopy -i $IMG $TMP/loader.conf ::loader/
 echo "title Wyrcan ~ The Container Bootloader" >> $TMP/wyrcan.conf
 echo "linux  /kernel" >> $TMP/wyrcan.conf
 echo "initrd /initrd" >> $TMP/wyrcan.conf
-echo "options loglevel=3 systemd.show_status=error" >> $TMP/wyrcan.conf
+echo "options quiet wyrcan.skip=quiet" >> $TMP/wyrcan.conf
 mmd -i $IMG ::loader/entries
 mcopy -i $IMG $TMP/wyrcan.conf ::loader/entries/
 
