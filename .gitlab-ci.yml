@@ -29,8 +29,8 @@ container:
     - cp wyrcan container/wyrcan
     - chmod g-w,o-w container/*
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
-    - docker build -t $CI_REGISTRY/$CI_PROJECT_PATH:latest container/
-    - docker push $CI_REGISTRY/$CI_PROJECT_PATH:latest
+    - docker build -t $CI_REGISTRY/$CI_PROJECT_PATH:$CI_COMMIT_REF_NAME container/
+    - docker push $CI_REGISTRY/$CI_PROJECT_PATH:$CI_COMMIT_REF_NAME
 
 images:
   stage: images
@@ -39,7 +39,7 @@ images:
     - apt update
     - apt install -y mtools xorriso xz-utils ca-certificates dosfstools libarchive-tools cpio
   script:
-    - ./wyrcan convert --kernel wyrcan.kernel --initrd wyrcan.initrd $CI_REGISTRY/$CI_PROJECT_PATH:latest
+    - ./wyrcan convert --kernel wyrcan.kernel --initrd wyrcan.initrd $CI_REGISTRY/$CI_PROJECT_PATH:$CI_COMMIT_REF_NAME
     - xz -T0 -9 -C crc32 wyrcan.initrd
     - mv wyrcan.initrd.xz wyrcan.initrd
     - ./iso.sh wyrcan.kernel wyrcan.initrd wyrcan.iso
