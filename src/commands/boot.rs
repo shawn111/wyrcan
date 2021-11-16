@@ -138,8 +138,10 @@ impl Command for Boot {
 
         // If no boot image was specified, look in EFI.
         if img.is_none() && var.exists() {
+            println!("Reading: EFI");
             let bytes = std::fs::read(&var)?;
             let ecl = std::str::from_utf8(&bytes[4..])?; // Skip the prefix
+            println!("Scanned: {}", ecl.trim());
             for arg in ecl.split_whitespace() {
                 let arg = arg.to_string();
                 match arg.find('=').map(|i| arg.split_at(i)) {
