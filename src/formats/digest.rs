@@ -69,7 +69,7 @@ impl FromStr for Inner {
     type Err = Invalid;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let (mut i, h) = if let Some((lhs, rhs)) = s.find(':').map(|x| s.split_at(x)) {
+        let (mut inner, hash) = if let Some((lhs, rhs)) = s.find(':').map(|x| s.split_at(x)) {
             let inner = if lhs.eq_ignore_ascii_case("sha256") {
                 Inner::Sha256(Context::new(&SHA256), [0; SHA256_OUTPUT_LEN])
             } else if lhs.eq_ignore_ascii_case("sha384") {
@@ -87,18 +87,18 @@ impl FromStr for Inner {
             return Err(Invalid::Algorithm);
         };
 
-        if h.len() != i.as_ref().len() * 2 {
+        if hash.len() != inner.as_ref().len() * 2 {
             return Err(Invalid::Length);
         }
 
-        let mut chars = h.as_bytes().iter();
-        for b in i.as_mut().iter_mut() {
+        let mut chars = hash.as_bytes().iter();
+        for b in inner.as_mut().iter_mut() {
             let l = *chars.next().unwrap();
             let r = *chars.next().unwrap();
             *b = dehex(l)? << 4 | dehex(r)?;
         }
 
-        Ok(i)
+        Ok(inner)
     }
 }
 
