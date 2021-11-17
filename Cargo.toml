@@ -2,6 +2,15 @@
 name = "wyrcan"
 version = "0.1.0"
 edition = "2021"
+include = ["README.md", "rust-toolchain.toml", "/src"]
+description = "The Container Bootloader"
+homepage = "https://gitlab.com/wyrcan/wyrcan"
+repository = "https://gitlab.com/wyrcan/wyrcan"
+readme = "README.md"
+keywords = ["container", "docker", "podman", "oci", "bootloader", "vm", "server"]
+categories = ["filesystem", "hardware-support", "network-programming", "embedded"]
+
+license-file = "LICENSE"
 
 [dependencies]
 serde = { version = "^1.0.130", features = ["derive"], default-features = false }
@@ -19,7 +28,7 @@ tar = "^0.4.37"
 log = "^0.4.14"
 
 [profile.dev]
-opt-level = 3
+opt-level = 3 # Unoptimized flate2 is unusably slow
 
 [profile.release]
 codegen-units = 1
