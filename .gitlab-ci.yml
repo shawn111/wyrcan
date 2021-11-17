@@ -3,12 +3,38 @@ default:
     - linux
 
 stages:
-  - command
+  - cargo
   - container
   - images
 
-command:
-  stage: command
+fmt:
+  stage: cargo
+  image: rust:1.56.1
+  before_script:
+    - rm rust-toolchain.toml
+    - rustup component add rustfmt
+  script:
+    - RUSTC_BOOTSTRAP=1 cargo fmt --all -- --check
+
+clippy:
+  stage: cargo
+  image: rust:1.56.1
+  before_script:
+    - rm rust-toolchain.toml
+    - rustup component add clippy
+  script:
+    - RUSTC_BOOTSTRAP=1 cargo clippy -- -D warnings
+
+debug:
+  stage: cargo
+  image: rust:1.56.1
+  before_script:
+    - rm rust-toolchain.toml
+  script:
+    - RUSTC_BOOTSTRAP=1 cargo build
+
+release:
+  stage: cargo
   image: rust:1.56.1
   before_script:
     - rm rust-toolchain.toml
@@ -20,9 +46,21 @@ command:
     paths:
       - wyrcan
 
-container:
+build:
   stage: container
   image: docker:latest
+  only: [merge_requests]
+  services:
+    - docker:dind
+  script:
+    - cp wyrcan container/wyrcan
+    - chmod g-w,o-w container/*
+    - docker build container/
+
+tag:
+  stage: container
+  image: docker:latest
+  except: [merge_requests]
   services:
     - docker:dind
   script:
@@ -35,6 +73,7 @@ container:
 images:
   stage: images
   image: debian:latest
+  except: [merge_requests]
   before_script:
     - apt update
     - apt install -y mtools xorriso xz-utils ca-certificates dosfstools libarchive-tools cpio

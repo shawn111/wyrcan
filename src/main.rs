@@ -2,6 +2,7 @@
 // Copyright (C) 2021 Profian, Inc.
 
 #![feature(asm)]
+#![warn(clippy::all)]
 
 mod api;
 mod commands;
