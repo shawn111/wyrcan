@@ -68,10 +68,7 @@ impl Command for Unpack {
 
                 match S_IFMT & mode {
                     S_IFDIR => {
-                        DirBuilder::new()
-                            .mode(mode)
-                            .recursive(false)
-                            .create(into)?;
+                        DirBuilder::new().mode(mode).recursive(false).create(into)?;
                     }
 
                     S_IFREG => {
