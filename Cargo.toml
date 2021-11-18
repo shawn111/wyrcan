@@ -15,7 +15,7 @@ license-file = "LICENSE"
 [dependencies]
 serde = { version = "^1.0.130", features = ["derive"], default-features = false }
 structopt = { version = "^0.3.25", default-features = false }
-ureq = { version = "*", features = ["json"] }
+ureq = { version = "^2.3.1", features = ["json"] }
 indicatif = "^0.16.2"
 iocuddle = "^0.1.1"
 anyhow = "^1.0.45"
