@@ -163,6 +163,7 @@ impl Command for Boot {
         }
         .execute()?;
         let extra = String::from_utf8(extra)?;
+        let extra = extra.trim();
 
         // If specified, save the command line to EFI.
         if let Some(Efi::Write) = efi {
@@ -176,7 +177,9 @@ impl Command for Boot {
         }
 
         // Merge the extra arguments with the specified arguments.
-        arg.insert(0, extra);
+        if !extra.is_empty() {
+            arg.insert(0, extra.to_string());
+        }
         let all = arg.join(" ");
 
         println!("Booting: {} ({})", img, &all);
