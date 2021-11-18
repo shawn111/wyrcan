@@ -132,6 +132,8 @@ $ qemu-system-x86_64 \
   -m 4G
 ```
 
+[![asciicast](https://asciinema.org/a/450003.svg)](https://asciinema.org/a/450003?autoplay=1)
+
 #### iPXE
 
 iPXE only supports a limited number of TLS cipher suites. As of this writing,
@@ -229,6 +231,8 @@ $ qemu-system-x86_64 \
   -nographic \
   -m 4G
 ```
+
+[![asciicast](https://asciinema.org/a/450009.svg)](https://asciinema.org/a/450009?autoplay=1)
 
 # Frequently Asked Questions (FAQ)
 
