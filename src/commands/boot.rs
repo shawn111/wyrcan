@@ -171,6 +171,7 @@ impl Command for Boot {
         if let Some(Efi::Write) = efi {
             if Self::prompt(Self::WARNING)?.trim() == "yes" {
                 let args = arg.join(" ");
+                println!("Writing: {} ({})", &img, &args);
                 nvr.write("CmdLine", &args)?;
                 nvr.write("Image", &img)?;
             }
