@@ -7,7 +7,7 @@ description = "The Container Bootloader"
 homepage = "https://gitlab.com/wyrcan/wyrcan"
 repository = "https://gitlab.com/wyrcan/wyrcan"
 readme = "README.md"
-keywords = ["container", "docker", "podman", "oci", "bootloader", "vm", "server"]
+keywords = ["container", "docker", "podman", "oci", "bootloader"]
 categories = ["filesystem", "hardware-support", "network-programming", "embedded"]
 
 license-file = "LICENSE"
