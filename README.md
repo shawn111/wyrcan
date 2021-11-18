@@ -258,6 +258,10 @@ image:
 wyrcan.img=registry.gitlab.com/wyrcan/wyrcan wyrcan.arg=wyrcan.img=registry.gitlab.com/wyrcan/debian
 ```
 
+You can see a working chained boot here:
+
+[![asciicast](https://asciinema.org/a/450016.svg)](https://asciinema.org/a/450016?autoplay=1)
+
 ## What is the full list of Wyrcan kernel command line arguments?
 
 You can use the following kernel cmdline arguments to control Wyrcan:
