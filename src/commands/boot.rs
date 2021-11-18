@@ -2,135 +2,16 @@
 // Copyright (C) 2021 Profian, Inc.
 
 use std::fs::File;
-use std::io::{Error, Write as _};
+use std::io::Error;
 use std::path::PathBuf;
-use std::str::from_utf8;
 
 use super::extract::{Extract, LookAside};
 use super::kexec::Kexec;
 use super::Command;
+use crate::cmdline::CmdLine;
 
 use anyhow::Result;
-use iocuddle::{Group, Ioctl, Read, Write};
 use structopt::StructOpt;
-
-const FILE: Group = Group::new(b'f');
-const FS_IOC_GETFLAGS: Ioctl<Read, &libc::c_long> = unsafe { FILE.read(1) };
-const FS_IOC_SETFLAGS: Ioctl<Write, &libc::c_long> = unsafe { FILE.write(2) };
-const FS_IMMUTABLE_FL: libc::c_long = 0x00000010;
-
-struct CmdLine<'a>(&'a [u8]);
-
-impl<'a> CmdLine<'a> {
-    pub fn new(value: &'a str) -> Option<Self> {
-        if value.is_ascii() {
-            Some(Self(value.as_bytes()))
-        } else {
-            None
-        }
-    }
-}
-
-impl<'a> Iterator for CmdLine<'a> {
-    type Item = (Option<&'a str>, &'a str);
-
-    fn next(&mut self) -> Option<Self::Item> {
-        while self.0[0].is_ascii_whitespace() {
-            self.0 = &self.0[1..];
-        }
-
-        if self.0.is_empty() {
-            return None;
-        }
-
-        let mut quoted = false;
-        let mut equals = 0;
-        let mut end = 0;
-
-        while end < self.0.len() && (!self.0[end].is_ascii_whitespace() || quoted) {
-            match self.0[end] {
-                b'"' => quoted = !quoted,
-                b'=' if equals == 0 => equals = end,
-                _ => (),
-            }
-
-            end += 1;
-        }
-
-        let (lhs, rhs) = self.0.split_at(end);
-        self.0 = rhs;
-
-        let (mut lhs, mut rhs) = lhs.split_at(equals);
-
-        if lhs.starts_with(b"\"") {
-            lhs = &lhs[1..];
-
-            if rhs.ends_with(b"\"") {
-                rhs = &rhs[..rhs.len() - 1];
-            }
-        }
-
-        if lhs.is_empty() {
-            Some((None, from_utf8(rhs).unwrap()))
-        } else {
-            rhs = &rhs[1..];
-
-            if rhs.starts_with(b"\"") {
-                rhs = &rhs[1..];
-                if rhs.ends_with(b"\"") {
-                    rhs = &rhs[..rhs.len() - 1];
-                }
-            }
-
-            Some((Some(from_utf8(lhs).unwrap()), from_utf8(rhs).unwrap()))
-        }
-    }
-}
-
-struct EfiStore<'a>(&'a str);
-
-impl<'a> EfiStore<'a> {
-    const BASE: &'static str = "/sys/firmware/efi/efivars";
-    const FLAG: [u8; 4] = 7u32.to_ne_bytes();
-
-    fn path(&self, name: &str) -> PathBuf {
-        PathBuf::from(format!("{}/{}-{}", Self::BASE, name, self.0))
-    }
-
-    pub fn new(uuid: &'a str) -> Self {
-        Self(uuid)
-    }
-
-    pub fn exists(&self, name: &str) -> bool {
-        self.path(name).exists()
-    }
-
-    pub fn read(&self, name: &str) -> Result<String> {
-        let bytes = std::fs::read(self.path(name))?;
-        Ok(from_utf8(&bytes[4..])?.to_string())
-    }
-
-    pub fn write(&self, name: &str, value: &str) -> Result<()> {
-        let mut data = Vec::new();
-        data.write_all(&Self::FLAG)?;
-        data.write_all(value.as_bytes())?;
-
-        Ok(std::fs::write(self.path(name), data)?)
-    }
-
-    pub fn clear(&self, name: &str) -> Result<()> {
-        let path = self.path(name);
-
-        // Remove the immutability flag.
-        let mut file = File::open(&path)?;
-        let (.., mut flags) = FS_IOC_GETFLAGS.ioctl(&file)?;
-        flags &= !FS_IMMUTABLE_FL;
-        FS_IOC_SETFLAGS.ioctl(&mut file, &flags)?;
-
-        // Remove the file.
-        Ok(std::fs::remove_file(path)?)
-    }
-}
 
 #[derive(Copy, Clone, Debug)]
 enum Efi {
@@ -207,7 +88,7 @@ You can use the following kernel cmdline arguments to control Wyrcan:
 
 impl Command for Boot {
     fn execute(self) -> Result<()> {
-        let nvr = EfiStore::new(Self::UUID);
+        let nvr = crate::efi::Store::new(Self::UUID);
 
         let bcl = std::fs::read_to_string("/proc/cmdline")?;
         let bcl = match CmdLine::new(&bcl) {

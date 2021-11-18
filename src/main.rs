@@ -5,7 +5,9 @@
 #![warn(clippy::all)]
 
 mod api;
+mod cmdline;
 mod commands;
+mod efi;
 mod formats;
 mod iotools;
 
