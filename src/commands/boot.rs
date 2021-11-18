@@ -49,10 +49,11 @@ You can use the following kernel cmdline arguments to control Wyrcan:
       wyrcan.img=registry.gitlab.com/wyrcan/debian:latest
 
   * wyrcan.arg=ARG - Passes the specified cmdline arguments to the container's
-    kernel. The arguments will be ignored by the Wyrcan kernel. For example,
-    the "quiet" argument will be active for the inner kernel only:
+    kernel. This argument may be specified multiple times and may be quoted to
+    include spaces. The arguments passed within will be ignored by the Wyrcan
+    kernel. For example, the following is valid:
 
-      wyrcan.arg=quiet
+      wyrcan.arg="quiet log-buf-len=1M" wyrcan.arg=print-fatal-signals=1
 
   * wyrcan.efi=write - Saves the wyrcan.img and wyrcan.arg parameters to EFI
     NVRAM. This enables persistent, automated boot.

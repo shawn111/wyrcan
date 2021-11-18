@@ -110,21 +110,21 @@ respectively, and fill in an appropriate `cmdline` value.  We reccomend the
 following `cmdline`, however it can be customized to your needs:
 
 ```
-loglevel=3 systemd.show_status=error wyrcan.img=CONTAINER
+quiet wyrcan.arg=loglevel=3 wyrcan.img=CONTAINER
 ```
 
 ### Examples
 #### QEMU
 
 ```sh
-$ curl -L 'https://gitlab.com/wyrcan/wyrcan/-/jobs/artifacts/main/raw/wyrcan.kernel?job=images' \
+$ curl -L 'https://gitlab.com/wyrcan/wyrcan/-/jobs/artifacts/latest/raw/wyrcan.kernel?job=images' \
   > wyrcan.kernel
 
-$ curl -L 'https://gitlab.com/wyrcan/wyrcan/-/jobs/artifacts/main/raw/wyrcan.initrd?job=images' \
+$ curl -L 'https://gitlab.com/wyrcan/wyrcan/-/jobs/artifacts/latest/raw/wyrcan.initrd?job=images' \
   > wyrcan.initrd
 
 $ qemu-system-x86_64 \
-  -append "loglevel=3 systemd.show_status=error console=ttyS0 wyrcan.img=CONTAINER" \
+  -append "console=ttyS0 quiet wyrcan.arg=loglevel=3 wyrcan.img=CONTAINER" \
   -kernel wyrcan.kernel \
   -initrd wyrcan.initrd \
   -enable-kvm \
@@ -144,10 +144,10 @@ your boot is completely automated.
 ```ipxe
 #!ipxe
 
-set kernel https://gitlab.com/wyrcan/wyrcan/-/jobs/artifacts/main/raw/wyrcan.kernel?job=images
-set initrd https://gitlab.com/wyrcan/wyrcan/-/jobs/artifacts/main/raw/wyrcan.initrd?job=images
+set kernel https://gitlab.com/wyrcan/wyrcan/-/jobs/artifacts/latest/raw/wyrcan.kernel?job=images
+set initrd https://gitlab.com/wyrcan/wyrcan/-/jobs/artifacts/latest/raw/wyrcan.initrd?job=images
 
-kernel ${kernel} loglevel=3 systemd.show_status=error console=ttyS0 wyrcan.img=CONTAINER
+kernel ${kernel} console=ttyS0 quiet wyrcan.arg=loglevel=3 wyrcan.img=CONTAINER
 initrd ${initrd}
 boot
 ```
@@ -179,17 +179,16 @@ While this works great, we need a way to automate the boot process.
 
 ### Automated
 
-In order to automate the ISO boot process, we need a way to persist the
-`cmdline`. In order to do this, just add `wyrcan.efi=write` to the `cmdline`.
-Wyrcan will validate your configuration and then store your `cmdline` in an
-EFI variable. Once this is complete, Wyrcan will immediately reboot to show
-you the fully automated process.
+In order to automate the ISO boot process, we need a way to persist
+`wyrcan.img` and `wyrcan.arg`. In order to do this, just add `wyrcan.efi=write`
+to the `cmdline`. Wyrcan will validate your configuration and store it into
+EFI NVRAM. Once this is complete, Wyrcan will reboot to show you the fully
+automated process.
 
-Once the `cmdline` is written to an EFI variable, you no longer need to edit
-the `cmdline` manually. Just let Wyrcan boot from the default option. Wyrcan
-will find your previously saved `cmdline` and boot it. Just leave the ISO
-connected to the device and Wyrcan will do the right thing every time you
-reboot.
+Once once the arguments are stored, you no longer need to edit the `cmdline`
+manually. Just let Wyrcan boot from the default option. Wyrcan will find your
+previously saved `cmdline` and boot it. Just leave the ISO connected to the
+device and Wyrcan will do the right thing every time you reboot.
 
 #### ⚠⚠⚠ WARNING ⚠⚠⚠
 
@@ -217,7 +216,7 @@ using EFI. Wyrcan does not support BIOS-only systems.
    `OVMF_CODE.fd` file should be included with your distribution.
 
 ```sh
-$ curl -L 'https://gitlab.com/wyrcan/wyrcan/-/jobs/artifacts/main/raw/wyrcan.iso?job=images' \
+$ curl -L 'https://gitlab.com/wyrcan/wyrcan/-/jobs/artifacts/latest/raw/wyrcan.iso?job=images' \
   > wyrcan.iso
 
 $ cp /usr/share/edk2/ovmf/OVMF_VARS.fd myvars.fd
@@ -243,6 +242,32 @@ using the `kexec` facility.
 
 Yes, the *actual* kernel from the container image is booted. Once the
 container has booted, nothing from Wyrcan stays resident in memory.
+
+## What is the full list of Wyrcan kernel command line arguments?
+
+You can use the following kernel cmdline arguments to control Wyrcan:
+
+  * wyrcan.img=IMG - Specifies which container will be booted. IMG should be
+    a container name in the usual format. For example:
+
+    ```
+    wyrcan.img=registry.gitlab.com/wyrcan/debian:latest
+    ```
+
+  * wyrcan.arg=ARG - Passes the specified cmdline arguments to the container's
+    kernel. This argument may be specified multiple times and may be quoted to
+    include spaces. The arguments passed within will be ignored by the Wyrcan
+    kernel. For example, the following is valid:
+
+    ```
+    wyrcan.arg="quiet log-buf-len=1M" wyrcan.arg=print-fatal-signals=1
+    ```
+
+  * wyrcan.efi=write - Saves the wyrcan.img and wyrcan.arg parameters to EFI
+    NVRAM. This enables persistent, automated boot.
+
+  * wyrcan.efi=clear - Removes all previously stored values from EFI NVRAM.
+    This disables persistent, automated boot.
 
 ## Wait... Memory-Resident... Are you using all my RAM!?
 
@@ -279,6 +304,6 @@ lot to like!
 * [wyrcan.initrd][wyrcan.initrd]
 * [wyrcan.iso][wyrcan.iso]
 
-[wyrcan.kernel]: https://gitlab.com/wyrcan/wyrcan/-/jobs/artifacts/main/raw/wyrcan.kernel?job=images
-[wyrcan.initrd]: https://gitlab.com/wyrcan/wyrcan/-/jobs/artifacts/main/raw/wyrcan.initrd?job=images
-[wyrcan.iso]: https://gitlab.com/wyrcan/wyrcan/-/jobs/artifacts/main/raw/wyrcan.iso?job=images
+[wyrcan.kernel]: https://gitlab.com/wyrcan/wyrcan/-/jobs/artifacts/latest/raw/wyrcan.kernel?job=images
+[wyrcan.initrd]: https://gitlab.com/wyrcan/wyrcan/-/jobs/artifacts/latest/raw/wyrcan.initrd?job=images
+[wyrcan.iso]: https://gitlab.com/wyrcan/wyrcan/-/jobs/artifacts/latest/raw/wyrcan.iso?job=images
