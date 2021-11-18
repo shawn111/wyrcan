@@ -24,6 +24,20 @@ impl<'a> Store<'a> {
         PathBuf::from(format!("{}/{}-{}", Self::BASE, name, self.0))
     }
 
+    fn mutate(&self, name: &str) -> Result<PathBuf> {
+        let path = self.path(name);
+
+        // Remove the immutability flag.
+        if path.exists() {
+            let mut file = File::open(&path)?;
+            let (.., mut flags) = FS_IOC_GETFLAGS.ioctl(&file)?;
+            flags &= !FS_IMMUTABLE_FL;
+            FS_IOC_SETFLAGS.ioctl(&mut file, &flags)?;
+        }
+
+        Ok(path)
+    }
+
     pub fn new(uuid: &'a str) -> Self {
         Self(uuid)
     }
@@ -42,19 +56,10 @@ impl<'a> Store<'a> {
         data.write_all(&Self::FLAG)?;
         data.write_all(value.as_bytes())?;
 
-        Ok(std::fs::write(self.path(name), data)?)
+        Ok(std::fs::write(self.mutate(name)?, data)?)
     }
 
     pub fn clear(&self, name: &str) -> Result<()> {
-        let path = self.path(name);
-
-        // Remove the immutability flag.
-        let mut file = File::open(&path)?;
-        let (.., mut flags) = FS_IOC_GETFLAGS.ioctl(&file)?;
-        flags &= !FS_IMMUTABLE_FL;
-        FS_IOC_SETFLAGS.ioctl(&mut file, &flags)?;
-
-        // Remove the file.
-        Ok(std::fs::remove_file(path)?)
+        Ok(std::fs::remove_file(self.mutate(name)?)?)
     }
 }
