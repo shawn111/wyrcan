@@ -76,6 +76,8 @@ You can use the following kernel cmdline arguments to control Wyrcan:
     }
 
     fn reboot() -> Result<()> {
+        Self::prompt(Self::REBOOT)?;
+
         unsafe { libc::sync() };
         let ret = unsafe { libc::reboot(libc::LINUX_REBOOT_CMD_RESTART) };
         if ret < 0 {
@@ -83,11 +85,6 @@ You can use the following kernel cmdline arguments to control Wyrcan:
         }
 
         Ok(())
-    }
-
-    fn preboot() -> Result<()> {
-        Self::prompt(Self::REBOOT)?;
-        Self::reboot()
     }
 }
 
@@ -100,7 +97,7 @@ impl Command for Boot {
             Some(cmdline) => cmdline,
             None => {
                 eprintln!("error: kernel cmdline is not ascii");
-                return Self::preboot();
+                return Self::reboot();
             }
         };
 
@@ -152,7 +149,7 @@ impl Command for Boot {
             Some(img) => img,
             None => {
                 println!("{}", Self::NOIMG);
-                return Self::preboot();
+                return Self::reboot();
             }
         };
 
@@ -178,7 +175,7 @@ impl Command for Boot {
                 nvr.write("Image", &img)?;
             }
 
-            return Self::preboot();
+            return Self::reboot();
         }
 
         // Merge the extra arguments with the specified arguments.
