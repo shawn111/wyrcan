@@ -55,6 +55,10 @@ You can use the following kernel cmdline arguments to control Wyrcan:
 
       wyrcan.arg="quiet log-buf-len=1M" wyrcan.arg=print-fatal-signals=1
 
+    The container's kernel will receive the following cmdline:
+
+      quiet log-buf-len=1M print-fatal-signals=1
+
   * wyrcan.efi=write - Saves the wyrcan.img and wyrcan.arg parameters to EFI
     NVRAM. This enables persistent, automated boot.
 
