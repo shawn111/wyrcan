@@ -4,11 +4,13 @@
 use std::fs::File;
 use std::io::{Error, Write as _};
 use std::path::PathBuf;
+use std::str::from_utf8;
 
 use super::extract::{Extract, LookAside};
 use super::kexec::Kexec;
 use super::Command;
 
+use anyhow::Result;
 use iocuddle::{Group, Ioctl, Read, Write};
 use structopt::StructOpt;
 
@@ -17,14 +19,117 @@ const FS_IOC_GETFLAGS: Ioctl<Read, &libc::c_long> = unsafe { FILE.read(1) };
 const FS_IOC_SETFLAGS: Ioctl<Write, &libc::c_long> = unsafe { FILE.write(2) };
 const FS_IMMUTABLE_FL: libc::c_long = 0x00000010;
 
-fn reboot() -> anyhow::Result<()> {
-    unsafe { libc::sync() };
-    let ret = unsafe { libc::reboot(libc::LINUX_REBOOT_CMD_RESTART) };
-    if ret < 0 {
-        return Err(Error::last_os_error().into());
+struct CmdLine<'a>(&'a [u8]);
+
+impl<'a> CmdLine<'a> {
+    pub fn new(value: &'a str) -> Option<Self> {
+        if value.is_ascii() {
+            Some(Self(value.as_bytes()))
+        } else {
+            None
+        }
+    }
+}
+
+impl<'a> Iterator for CmdLine<'a> {
+    type Item = (Option<&'a str>, &'a str);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        while self.0[0].is_ascii_whitespace() {
+            self.0 = &self.0[1..];
+        }
+
+        if self.0.is_empty() {
+            return None;
+        }
+
+        let mut quoted = false;
+        let mut equals = 0;
+        let mut end = 0;
+
+        while end < self.0.len() && (!self.0[end].is_ascii_whitespace() || quoted) {
+            match self.0[end] {
+                b'"' => quoted = !quoted,
+                b'=' if equals == 0 => equals = end,
+                _ => (),
+            }
+
+            end += 1;
+        }
+
+        let (lhs, rhs) = self.0.split_at(end);
+        self.0 = rhs;
+
+        let (mut lhs, mut rhs) = lhs.split_at(equals);
+
+        if lhs.starts_with(b"\"") {
+            lhs = &lhs[1..];
+
+            if rhs.ends_with(b"\"") {
+                rhs = &rhs[..rhs.len() - 1];
+            }
+        }
+
+        if lhs.is_empty() {
+            Some((None, from_utf8(rhs).unwrap()))
+        } else {
+            rhs = &rhs[1..];
+
+            if rhs.starts_with(b"\"") {
+                rhs = &rhs[1..];
+                if rhs.ends_with(b"\"") {
+                    rhs = &rhs[..rhs.len() - 1];
+                }
+            }
+
+            Some((Some(from_utf8(lhs).unwrap()), from_utf8(rhs).unwrap()))
+        }
+    }
+}
+
+struct EfiStore<'a>(&'a str);
+
+impl<'a> EfiStore<'a> {
+    const BASE: &'static str = "/sys/firmware/efi/efivars";
+    const FLAG: [u8; 4] = 7u32.to_ne_bytes();
+
+    fn path(&self, name: &str) -> PathBuf {
+        PathBuf::from(format!("{}/{}-{}", Self::BASE, name, self.0))
     }
 
-    Ok(())
+    pub fn new(uuid: &'a str) -> Self {
+        Self(uuid)
+    }
+
+    pub fn exists(&self, name: &str) -> bool {
+        self.path(name).exists()
+    }
+
+    pub fn read(&self, name: &str) -> Result<String> {
+        let bytes = std::fs::read(self.path(name))?;
+        Ok(from_utf8(&bytes[4..])?.to_string())
+    }
+
+    pub fn write(&self, name: &str, value: &str) -> Result<()> {
+        let mut data = Vec::new();
+        data.write_all(&Self::FLAG)?;
+        data.write_all(value.as_bytes())?;
+
+        Ok(std::fs::write(self.path(name), data)?)
+    }
+
+    pub fn clear(&self, name: &str) -> Result<()> {
+        let path = self.path(name);
+
+        // Remove the immutability flag.
+        let mut file = File::open(&path)?;
+        let (.., mut flags) = FS_IOC_GETFLAGS.ioctl(&file)?;
+        flags &= !FS_IMMUTABLE_FL;
+        FS_IOC_SETFLAGS.ioctl(&mut file, &flags)?;
+
+        // Remove the file.
+        Ok(std::fs::remove_file(path)?)
+    }
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -38,9 +143,6 @@ pub struct Boot {}
 
 impl Boot {
     const UUID: &'static str = "6987e713-a5ff-4ec2-ad55-c1fca471ed2d";
-    const NAME: &'static str = "CmdLine";
-    const BASE: &'static str = "/sys/firmware/efi/efivars";
-    const FLAG: [u8; 4] = 7u32.to_ne_bytes();
 
     const WARNING: &'static str = r###"
 ⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠ WARNING ⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠
@@ -58,98 +160,105 @@ Would you like to proceed? [yes/no]
     const NOIMG: &'static str = r###"
 No container image target (wyrcan.img=IMG) could be found!
 
-You can use the following kernel cmdline arguments to control the behavior of
-Wyrcan. Except for wyrcan.img=IMG, all cmdline arguments are optional.
+You can use the following kernel cmdline arguments to control Wyrcan:
 
   * wyrcan.img=IMG - Specifies which container will be booted. IMG should be
     a container name in the usual format. For example:
 
       wyrcan.img=registry.gitlab.com/wyrcan/debian:latest
 
-  * wyrcan.efi=write - Saves the cmdline arguments to EFI NVRAM. This enables
-    persistent cmdline arguments for automated boot.
+  * wyrcan.arg=ARG - Passes the specified cmdline arguments to the container's
+    kernel. The arguments will be ignored by the Wyrcan kernel. For example,
+    the "quiet" argument will be active for the inner kernel only:
 
-  * wyrcan.efi=clear - Removes all cmdline arguments from EFI NVRAM. This
-    enables persistent cmdline arguments for automated boot.
+      wyrcan.arg=quiet
 
-  * wyrcan.pass=ARG - Passes a cmdline argument to the container's kernel. The
-    argument will be ignored by the Wyrcan kernel. This allows one to specify
-    an argument to the inner kernel only. For example, under this config, the
-    "quiet" argument will be active for the inner kernel only:
+  * wyrcan.efi=write - Saves the wyrcan.img and wyrcan.arg parameters to EFI
+    NVRAM. This enables persistent, automated boot.
 
-      wyrcan.pass=quiet
-
-  * wyrcan.skip=ARG - Prevents a cmdline argument from being passed to the
-    container's kernel. This allows one to specify an argument to the outer
-    kernel only. For example, under this configuration, the "quiet" argument
-    will be active for the outer kernel only:
-
-      quiet wyrcan.skip=quiet
-
-Press enter or return to reboot.
+  * wyrcan.efi=clear - Removes all previously stored values from EFI NVRAM.
+    This disables persistent, automated boot.
 "###;
+
+    const REBOOT: &'static str = "Press enter or return to reboot.";
+
+    fn prompt(message: &str) -> Result<String> {
+        println!("{}", message);
+        let mut answer = String::new();
+        std::io::stdin().read_line(&mut answer)?;
+        Ok(answer)
+    }
+
+    fn reboot() -> Result<()> {
+        unsafe { libc::sync() };
+        let ret = unsafe { libc::reboot(libc::LINUX_REBOOT_CMD_RESTART) };
+        if ret < 0 {
+            return Err(Error::last_os_error().into());
+        }
+
+        Ok(())
+    }
+
+    fn preboot() -> Result<()> {
+        Self::prompt(Self::REBOOT)?;
+        Self::reboot()
+    }
 }
 
 impl Command for Boot {
-    fn execute(self) -> anyhow::Result<()> {
-        let var = PathBuf::from(format!("{}/{}-{}", Self::BASE, Self::NAME, Self::UUID));
+    fn execute(self) -> Result<()> {
+        let nvr = EfiStore::new(Self::UUID);
+
         let bcl = std::fs::read_to_string("/proc/cmdline")?;
+        let bcl = match CmdLine::new(&bcl) {
+            Some(cmdline) => cmdline,
+            None => {
+                eprintln!("error: kernel cmdline is not ascii");
+                return Self::preboot();
+            }
+        };
 
         // Parse the boot cmdline arguments
-        let mut cmdline = Vec::<String>::new();
-        let mut skip = Vec::<String>::new();
-        let mut img: Option<String> = None;
-        let mut efi: Option<Efi> = None;
-        for arg in bcl.split_whitespace() {
-            match arg.find('=').map(|i| arg.split_at(i)) {
-                Some(("wyrcan.efi", "=write")) => efi = Some(Efi::Write),
-                Some(("wyrcan.efi", "=clear")) => efi = Some(Efi::Clear),
-                Some(("wyrcan.pass", v)) => cmdline.push(v[1..].into()),
-                Some(("wyrcan.skip", v)) => skip.push(v[1..].into()),
-                Some(("wyrcan.img", v)) => img = Some(v[1..].into()),
-                Some(("initrd", ..)) => continue,
-                _ if arg.starts_with("wyrcan.") => continue,
-                _ => cmdline.push(arg.into()),
+        let mut arg = Vec::new();
+        let mut img = None;
+        let mut efi = None;
+        for (k, v) in bcl {
+            match (k, v) {
+                (Some("wyrcan.efi"), "write") => efi = Some(Efi::Write),
+                (Some("wyrcan.efi"), "clear") => efi = Some(Efi::Clear),
+                (Some("wyrcan.img"), v) => img = Some(v.to_string()),
+                (Some("wyrcan.arg"), v) => arg.push(v.to_string()),
+                _ => (),
             }
         }
-        cmdline = cmdline.into_iter().filter(|x| !skip.contains(x)).collect();
 
         // If the cmdline says to clear EFI, do it...
         if let Some(Efi::Clear) = efi {
-            if var.exists() {
-                println!("{}", Self::WARNING);
-                let mut answer = String::new();
-                std::io::stdin().read_line(&mut answer)?;
+            if Self::prompt(Self::WARNING)?.trim() == "yes" {
+                if nvr.exists("CmdLine") {
+                    nvr.clear("CmdLine")?;
+                }
 
-                if answer.trim() == "yes" {
-                    // Remove the immutability flag.
-                    let mut file = File::open(&var)?;
-                    let (.., mut flags) = FS_IOC_GETFLAGS.ioctl(&file)?;
-                    flags &= !FS_IMMUTABLE_FL;
-                    FS_IOC_SETFLAGS.ioctl(&mut file, &flags)?;
-
-                    // Remove the file.
-                    std::fs::remove_file(&var)?;
+                if nvr.exists("Image") {
+                    nvr.clear("Image")?;
                 }
             }
 
-            return reboot();
+            return Self::reboot();
         }
 
         // If no boot image was specified, look in EFI.
-        if img.is_none() && var.exists() {
-            println!("Reading: EFI");
-            let bytes = std::fs::read(&var)?;
-            let ecl = std::str::from_utf8(&bytes[4..])?; // Skip the prefix
-            println!("Scanned: {}", ecl.trim());
-            for arg in ecl.split_whitespace() {
-                let arg = arg.to_string();
-                match arg.find('=').map(|i| arg.split_at(i)) {
-                    Some(("wyrcan.img", v)) => img = Some(v[1..].into()),
-                    _ if !cmdline.contains(&arg) => cmdline.push(arg),
-                    _ => (),
-                }
-            }
+        if img.is_none() && nvr.exists("Image") {
+            let image = nvr.read("Image")?;
+            println!("Scanned: {}", image);
+            img = Some(image);
+        }
+
+        // If no arguments were specified, look in EFI.
+        if arg.is_empty() && nvr.exists("CmdLine") {
+            let cmdline = nvr.read("CmdLine")?;
+            println!("Scanned: {}", cmdline);
+            arg.push(cmdline);
         }
 
         // If we still have no image, give the user some documentation.
@@ -157,10 +266,7 @@ impl Command for Boot {
             Some(img) => img,
             None => {
                 println!("{}", Self::NOIMG);
-                let mut answer = String::new();
-                std::io::stdin().read_line(&mut answer)?;
-
-                return reboot();
+                return Self::preboot();
             }
         };
 
@@ -179,44 +285,24 @@ impl Command for Boot {
 
         // If specified, save the command line to EFI.
         if let Some(Efi::Write) = efi {
-            println!("{}", Self::WARNING);
-            let mut answer = String::new();
-            std::io::stdin().read_line(&mut answer)?;
-
-            if answer.trim() == "yes" {
-                // Prepare the args
-                let mut args = cmdline.clone();
-                args.push(format!("wyrcan.img={}", img));
-                let args = args.join(" ");
-
-                // Prepare the output
-                let mut data = Vec::new();
-                data.write_all(&Self::FLAG)?;
-                data.write_all(args.as_bytes())?;
-
-                // Write out the efi variable
-                println!("Writing: {}", args);
-                std::fs::write(&var, &data)?;
+            if Self::prompt(Self::WARNING)?.trim() == "yes" {
+                let args = arg.join(" ");
+                nvr.write("CmdLine", &args)?;
+                nvr.write("Image", &img)?;
             }
 
-            std::thread::sleep(std::time::Duration::from_millis(3000));
-            return reboot();
+            return Self::preboot();
         }
 
         // Merge the extra arguments with the specified arguments.
-        for (i, arg) in extra.split_whitespace().enumerate() {
-            let arg = arg.to_string();
-            if !skip.contains(&arg) {
-                cmdline.insert(i, arg);
-            }
-        }
-        let args = cmdline.join(" ");
+        arg.insert(0, extra);
+        let all = arg.join(" ");
 
-        println!("Booting: {} ({})", img, &args);
+        println!("Booting: {} ({})", img, &all);
         Kexec {
             kernel: PathBuf::from("/tmp/kernel"),
             initrd: PathBuf::from("/tmp/initrd"),
-            cmdline: args,
+            cmdline: all,
             reboot: true,
         }
         .execute()?;
