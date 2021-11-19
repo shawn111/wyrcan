@@ -1,13 +1,8 @@
-FROM debian:latest
+FROM registry.gitlab.com/wyrcan/debian:latest
 
 RUN apt-get update && \
-    apt-get install --no-install-recommends -y linux-image-generic && \
     apt-get install --no-install-recommends -y ca-certificates && \
-    apt-get install --no-install-recommends -y systemd && \
     rm -rf /var/lib/apt/lists/*
-
-RUN cd /boot; ln -s vmlinuz-* wyrcan.kernel
-RUN ln -s /bin/systemd /init
 
 # Enable networking.
 COPY autoconf.override /etc/systemd/system/systemd-networkd-wait-online.service.d/override.conf
