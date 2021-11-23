@@ -185,15 +185,19 @@ impl Command for Boot {
         }
         let all = arg.join(" ");
 
+        // Load the kernel and initrd.
         println!("Booting: {} ({})", img, &all);
         Kexec {
             kernel: PathBuf::from("/tmp/kernel"),
             initrd: PathBuf::from("/tmp/initrd"),
             cmdline: all,
-            reboot: true,
+            reboot: false,
         }
         .execute()?;
 
-        Ok(())
+        // Remove files and reboot.
+        std::fs::remove_file("/tmp/kernel")?;
+        std::fs::remove_file("/tmp/initrd")?;
+        Ok(Kexec::reboot()?)
     }
 }

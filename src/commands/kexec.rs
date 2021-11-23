@@ -31,6 +31,19 @@ pub struct Kexec {
     pub reboot: bool,
 }
 
+impl Kexec {
+    pub fn reboot() -> std::io::Result<()> {
+        unsafe { libc::sync() };
+
+        let ret = unsafe { libc::reboot(libc::LINUX_REBOOT_CMD_KEXEC) };
+        if ret < 0 {
+            return Err(Error::last_os_error());
+        }
+
+        Ok(())
+    }
+}
+
 impl Command for Kexec {
     fn execute(self) -> anyhow::Result<()> {
         let kernel = File::open(self.kernel)?;
@@ -76,11 +89,7 @@ impl Command for Kexec {
         }
 
         if self.reboot {
-            unsafe { libc::sync() };
-            let ret = unsafe { libc::reboot(libc::LINUX_REBOOT_CMD_KEXEC) };
-            if ret < 0 {
-                return Err(Error::last_os_error().into());
-            }
+            Self::reboot()?;
         }
 
         Ok(())
