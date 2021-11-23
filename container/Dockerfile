@@ -1,8 +1,11 @@
 FROM registry.gitlab.com/wyrcan/debian:latest
 
 RUN apt-get update && \
-    apt-get install --no-install-recommends -y ca-certificates && \
+    apt-get install --no-install-recommends -y ca-certificates zram-tools && \
     rm -rf /var/lib/apt/lists/*
+
+# Enable zram.
+COPY zramswap /etc/default/zramswap
 
 # Enable networking.
 COPY autoconf.override /etc/systemd/system/systemd-networkd-wait-online.service.d/override.conf
