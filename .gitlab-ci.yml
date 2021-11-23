@@ -99,9 +99,8 @@ images:
     - apt update
     - apt install -y mtools xorriso xz-utils ca-certificates dosfstools libarchive-tools cpio
   script:
-    - ./wyrcan convert --kernel wyrcan.kernel --initrd wyrcan.initrd $CI_REGISTRY/$CI_PROJECT_PATH:$CI_COMMIT_REF_NAME
-    - xz -T0 -9 -C crc32 wyrcan.initrd
-    - mv wyrcan.initrd.xz wyrcan.initrd
+    - ./wyrcan convert --kernel wyrcan.kernel --initrd wyrcan.initrd.gz $CI_REGISTRY/$CI_PROJECT_PATH:$CI_COMMIT_REF_NAME
+    - gunzip -c wyrcan.initrd.gz | xz -c -T0 -9 -C crc32 > wyrcan.initrd
     - ./iso.sh wyrcan.kernel wyrcan.initrd wyrcan.iso
   artifacts:
     paths:

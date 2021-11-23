@@ -11,6 +11,7 @@ use std::path::Path;
 use std::path::PathBuf;
 
 use anyhow::{anyhow, Result};
+use flate2::{write::GzEncoder, Compression};
 use libc::{S_IFLNK, S_IFMT, S_IFREG};
 use tar::Header;
 
@@ -81,7 +82,7 @@ impl<K: Write, I: Write, C: Write> Command for Extract<K, I, C> {
 
         let mut ino = 0;
         let mut kernel = self.kernel;
-        let mut initrd = self.initrd;
+        let mut initrd = GzEncoder::new(self.initrd, Compression::fast());
         let mut cmdline = self.cmdline;
         for mut bundle in unpacker.bundles()? {
             for entry in bundle.entries()? {
