@@ -84,6 +84,11 @@ Registry. New features and distributions, as well as bug fixes, are welcome!
   * Container Image: `registry.gitlab.com/wyrcan/archlinux`
   * Dockerfile: https://gitlab.com/wyrcan/archlinux
 
+5. CentOS
+
+  * Container Image: `registry.gitlab.com/wyrcan/centos`
+  * Dockerfile: https://gitlab.com/wyrcan/centos
+
 # Configure and Boot Wyrcan
 
 From here we basically want to boot Wyrcan with `wyrcan.img=CONTAINER` in the
