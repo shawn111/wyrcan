@@ -16,6 +16,7 @@ RUN systemctl enable systemd-resolved.service systemd-networkd.service
 RUN systemctl mask systemd-logind.service console-getty.service serial-getty@.service getty@.service getty.target
 
 # Set up the wyrcan boot service
-COPY wyrcan.service /etc/systemd/system/wyrcan.service
-COPY wyrcan /usr/local/bin/wyrcan
+COPY rescue.service /etc/systemd/system/
+COPY wyrcan.service /etc/systemd/system/
+COPY wyrcan /usr/local/bin/
 RUN systemctl enable wyrcan.service

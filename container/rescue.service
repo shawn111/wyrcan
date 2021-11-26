@@ -1,0 +1,9 @@
+[Unit]
+Description=Rescue Shell
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash
+StandardInput=tty
+TTYVHangup=yes
+TTYReset=yes
