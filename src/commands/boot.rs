@@ -11,6 +11,7 @@ use super::Command;
 use crate::cmdline::CmdLine;
 
 use anyhow::Result;
+use indicatif::ProgressBar;
 use structopt::StructOpt;
 
 #[derive(Copy, Clone, Debug)]
@@ -133,14 +134,14 @@ impl Command for Boot {
         // If no boot image was specified, look in EFI.
         if img.is_none() && nvr.exists("Image") {
             let image = nvr.read("Image")?;
-            println!("Scanned: {}", image);
+            eprintln!("* Scanned: {}", image);
             img = Some(image);
         }
 
         // If no arguments were specified, look in EFI.
         if arg.is_empty() && nvr.exists("CmdLine") {
             let cmdline = nvr.read("CmdLine")?;
-            println!("Scanned: {}", cmdline);
+            eprintln!("* Scanned: {}", cmdline);
             arg.push(cmdline);
         }
 
@@ -154,7 +155,7 @@ impl Command for Boot {
         };
 
         // Download and extract the specified container image.
-        println!("Loading: {}", &img);
+        eprintln!("* Getting: {}", &img);
         let mut extra = Vec::new();
         Extract {
             kernel: LookAside::kernel(File::create("/tmp/kernel")?),
@@ -171,7 +172,7 @@ impl Command for Boot {
         if let Some(Efi::Write) = efi {
             if Self::prompt(Self::WARNING)?.trim() == "yes" {
                 let args = arg.join(" ");
-                println!("Writing: {} ({})", &img, &args);
+                eprintln!("* Writing: {} ({})", img, args);
                 nvr.write("CmdLine", &args)?;
                 nvr.write("Image", &img)?;
             }
@@ -185,17 +186,24 @@ impl Command for Boot {
         }
         let all = arg.join(" ");
 
-        // Load the kernel and initrd.
-        println!("Booting: {} ({})", img, &all);
-        Kexec {
-            kernel: PathBuf::from("/tmp/kernel"),
-            initrd: PathBuf::from("/tmp/initrd"),
-            cmdline: all,
-            reboot: false,
+        {
+            // Set up the spinner
+            let pb = ProgressBar::new_spinner();
+            pb.set_message(format!("Loading: {} ({})", img, all));
+            pb.enable_steady_tick(100);
+
+            // Load the kernel and initrd.
+            Kexec {
+                kernel: PathBuf::from("/tmp/kernel"),
+                initrd: PathBuf::from("/tmp/initrd"),
+                cmdline: all.clone(),
+                reboot: false,
+            }
+            .execute()?;
         }
-        .execute()?;
 
         // Remove files and reboot.
+        eprintln!("* Booting: {} ({})", img, all);
         std::fs::remove_file("/tmp/kernel")?;
         std::fs::remove_file("/tmp/initrd")?;
         Ok(Kexec::reboot()?)
