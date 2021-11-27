@@ -13,7 +13,7 @@ COPY autoconf.network /etc/systemd/network/autoconf.network
 RUN systemctl enable systemd-resolved.service systemd-networkd.service
 
 # Disable all login services
-RUN systemctl mask systemd-logind.service console-getty.service serial-getty@.service getty@.service getty.target
+RUN systemctl mask console-getty.service serial-getty@.service getty@.service getty.target
 
 # Set up the wyrcan boot service
 COPY rescue.service /etc/systemd/system/
