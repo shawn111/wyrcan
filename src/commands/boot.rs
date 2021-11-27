@@ -4,6 +4,7 @@
 use std::fs::File;
 use std::io::Error;
 use std::path::PathBuf;
+use std::time::Duration;
 
 use super::extract::{Extract, LookAside};
 use super::kexec::Kexec;
@@ -13,6 +14,8 @@ use crate::cmdline::CmdLine;
 use anyhow::Result;
 use indicatif::ProgressBar;
 use structopt::StructOpt;
+
+const MAX_TRIES: u32 = 5;
 
 #[derive(Copy, Clone, Debug)]
 enum Efi {
@@ -157,14 +160,25 @@ impl Command for Boot {
         // Download and extract the specified container image.
         eprintln!("* Getting: {}", &img);
         let mut extra = Vec::new();
-        Extract {
-            kernel: LookAside::kernel(File::create("/tmp/kernel")?),
-            initrd: File::create("/tmp/initrd")?,
-            cmdline: LookAside::cmdline(&mut extra),
-            progress: true,
-            name: img.clone(),
+        for tries in 0.. {
+            extra.truncate(0);
+
+            let extract = Extract {
+                kernel: LookAside::kernel(File::create("/tmp/kernel")?),
+                initrd: File::create("/tmp/initrd")?,
+                cmdline: LookAside::cmdline(&mut extra),
+                progress: true,
+                name: img.clone(),
+            };
+
+            match extract.execute() {
+                Err(e) if tries < MAX_TRIES => eprintln!("* Failure: {}", e),
+                Err(e) => return Err(e),
+                Ok(()) => break,
+            }
+
+            std::thread::sleep(Duration::from_secs(2u64.pow(tries)));
         }
-        .execute()?;
         let extra = String::from_utf8(extra)?;
         let extra = extra.trim();
 
