@@ -2,7 +2,7 @@
 Description=Wyrcan
 After=network-online.target
 Wants=network-online.target
-OnFailure=rescue.service
+#OnFailure=rescue.service
 
 [Service]
 Type=oneshot
