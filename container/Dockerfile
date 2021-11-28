@@ -1,8 +1,9 @@
 FROM registry.gitlab.com/wyrcan/debian:latest
 
 # Install packages
+RUN sed -i 's| main| main contrib non-free|' /etc/apt/sources.list
 RUN apt update \
- && apt install --no-install-recommends -y ca-certificates zram-tools \
+ && apt install --no-install-recommends -y ca-certificates zram-tools firmware-linux firmware-realtek \
  && rm -rf /var/lib/apt/lists/*
 
 # Enable zram.
