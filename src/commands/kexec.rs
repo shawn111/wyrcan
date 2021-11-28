@@ -95,6 +95,11 @@ impl Command for Kexec {
 
         Self::kexec(kernel, initrd, &cmdline)?;
 
+        // Wait for the kernel to tell us it is ready.
+        while std::fs::read("/sys/kernel/kexec_loaded")? != [b'1', b'\n'] {
+            std::thread::sleep(Duration::from_millis(100));
+        }
+
         if self.reboot {
             Self::reboot()?;
         }
