@@ -3,7 +3,6 @@
 
 use std::ffi::{CStr, CString};
 use std::fs::File;
-use std::io::Error;
 use std::os::unix::prelude::*;
 use std::path::PathBuf;
 use std::time::Duration;
@@ -26,10 +25,6 @@ pub struct Kexec {
     /// The kernel command line to use after reboot
     #[structopt(long, short)]
     pub cmdline: String,
-
-    /// Reboot immediately (does not do a clean shutdown)
-    #[structopt(long, short)]
-    pub reboot: bool,
 }
 
 impl Kexec {
@@ -74,17 +69,6 @@ impl Kexec {
 
         Ok(())
     }
-
-    pub fn reboot() -> std::io::Result<()> {
-        unsafe { libc::sync() };
-
-        let ret = unsafe { libc::reboot(libc::LINUX_REBOOT_CMD_KEXEC) };
-        if ret < 0 {
-            return Err(Error::last_os_error());
-        }
-
-        Ok(())
-    }
 }
 
 impl Command for Kexec {
@@ -98,10 +82,6 @@ impl Command for Kexec {
         // Wait for the kernel to tell us it is ready.
         while std::fs::read("/sys/kernel/kexec_loaded")? != [b'1', b'\n'] {
             std::thread::sleep(Duration::from_millis(100));
-        }
-
-        if self.reboot {
-            Self::reboot()?;
         }
 
         Ok(())

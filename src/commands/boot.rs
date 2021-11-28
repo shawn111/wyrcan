@@ -211,15 +211,14 @@ impl Command for Boot {
                 kernel: PathBuf::from("/tmp/kernel"),
                 initrd: PathBuf::from("/tmp/initrd"),
                 cmdline: all.clone(),
-                reboot: false,
             }
             .execute()?;
         }
 
-        // Remove files and reboot.
+        // Remove files and exit.
         eprintln!("* Booting: {} ({})", img, all);
         std::fs::remove_file("/tmp/kernel")?;
         std::fs::remove_file("/tmp/initrd")?;
-        Ok(Kexec::reboot()?)
+        Ok(())
     }
 }

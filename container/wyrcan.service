@@ -2,7 +2,9 @@
 Description=Wyrcan
 After=network-online.target
 Wants=network-online.target
+OnSuccess=systemd-kexec.service
 #OnFailure=rescue.service
+FailureAction=reboot
 
 [Service]
 Type=oneshot
