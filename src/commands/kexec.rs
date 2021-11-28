@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright (C) 2021 Profian, Inc.
 
-use std::ffi::CString;
+use std::ffi::{CStr, CString};
 use std::fs::File;
 use std::io::Error;
 use std::os::unix::prelude::*;
 use std::path::PathBuf;
+use std::time::Duration;
 
 use super::Command;
 
@@ -32,24 +33,7 @@ pub struct Kexec {
 }
 
 impl Kexec {
-    pub fn reboot() -> std::io::Result<()> {
-        unsafe { libc::sync() };
-
-        let ret = unsafe { libc::reboot(libc::LINUX_REBOOT_CMD_KEXEC) };
-        if ret < 0 {
-            return Err(Error::last_os_error());
-        }
-
-        Ok(())
-    }
-}
-
-impl Command for Kexec {
-    fn execute(self) -> anyhow::Result<()> {
-        let kernel = File::open(self.kernel)?;
-        let initrd = File::open(self.initrd)?;
-        let cmdline = CString::new(self.cmdline)?;
-
+    pub fn kexec(kernel: File, initrd: File, cmdline: &CStr) -> std::io::Result<()> {
         let kernel = kernel.as_raw_fd() as usize;
         let initrd = initrd.as_raw_fd();
         let cmdline = cmdline.to_bytes_with_nul();
@@ -85,8 +69,31 @@ impl Command for Kexec {
 
         if retval > -4096isize as usize {
             let code = -(retval as isize) as i32;
-            return Err(std::io::Error::from_raw_os_error(code).into());
+            return Err(std::io::Error::from_raw_os_error(code));
         }
+
+        Ok(())
+    }
+
+    pub fn reboot() -> std::io::Result<()> {
+        unsafe { libc::sync() };
+
+        let ret = unsafe { libc::reboot(libc::LINUX_REBOOT_CMD_KEXEC) };
+        if ret < 0 {
+            return Err(Error::last_os_error());
+        }
+
+        Ok(())
+    }
+}
+
+impl Command for Kexec {
+    fn execute(self) -> anyhow::Result<()> {
+        let kernel = File::open(self.kernel)?;
+        let initrd = File::open(self.initrd)?;
+        let cmdline = CString::new(self.cmdline)?;
+
+        Self::kexec(kernel, initrd, &cmdline)?;
 
         if self.reboot {
             Self::reboot()?;
