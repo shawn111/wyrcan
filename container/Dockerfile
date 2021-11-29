@@ -1,4 +1,4 @@
-FROM registry.gitlab.com/wyrcan/debian:latest
+FROM registry.gitlab.com/wyrcan/debian:bookworm
 
 # Install packages
 RUN sed -i 's| main| main contrib non-free|' /etc/apt/sources.list
