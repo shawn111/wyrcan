@@ -3,7 +3,7 @@ FROM registry.gitlab.com/wyrcan/debian:bookworm
 # Install packages
 RUN sed -i 's| main| main contrib non-free|' /etc/apt/sources.list
 RUN apt update \
- && apt install -y ca-certificates zram-tools firmware-linux firmware-realtek \
+ && apt install -y ca-certificates zram-tools firmware-linux firmware-realtek default-dbus-session-bus \
  && rm -rf /var/lib/apt/lists/*
 
 # Enable zram.

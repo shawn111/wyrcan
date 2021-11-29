@@ -9,6 +9,7 @@ FailureAction=reboot
 [Service]
 Type=oneshot
 ExecStart=/bin/ln -sf /run/systemd/resolve/stub-resolv.conf /etc/resolv.conf
+ExecStart=/bin/networkctl status -n0
 ExecStart=/usr/local/bin/wyrcan boot
 StandardInput=tty
 TTYVHangup=yes
