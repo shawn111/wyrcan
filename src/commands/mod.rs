@@ -2,10 +2,10 @@
 // Copyright (C) 2021 Profian, Inc.
 
 mod boot;
-mod convert;
 mod efi;
 mod extract;
 mod kexec;
+mod morph;
 mod net;
 mod unpack;
 mod unpacker;
@@ -126,9 +126,9 @@ pub enum Main {
 
     Kexec(kexec::Kexec),
 
-    Unpack(unpack::Unpack),
+    Morph(morph::Morph),
 
-    Convert(convert::Convert),
+    Unpack(unpack::Unpack),
 }
 
 impl Command for Main {
@@ -139,7 +139,7 @@ impl Command for Main {
             Self::Boot(cmd) => cmd.execute(),
             Self::Kexec(cmd) => cmd.execute(),
             Self::Unpack(cmd) => cmd.execute(),
-            Self::Convert(cmd) => cmd.execute(),
+            Self::Morph(cmd) => cmd.execute(),
         }
     }
 }

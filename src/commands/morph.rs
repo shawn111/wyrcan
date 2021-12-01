@@ -12,9 +12,9 @@ use std::path::PathBuf;
 use anyhow::Result;
 use structopt::StructOpt;
 
-/// Converts a container into the files necessary for boot
+/// Morphs a container into the files necessary for boot
 #[derive(StructOpt, Debug)]
-pub struct Convert {
+pub struct Morph {
     /// The path to store the kernel
     #[structopt(short, long)]
     kernel: Option<PathBuf>,
@@ -36,7 +36,7 @@ pub struct Convert {
     name: String,
 }
 
-impl Command for Convert {
+impl Command for Morph {
     fn execute(self) -> anyhow::Result<()> {
         fn create(value: Option<&PathBuf>) -> Result<Either<File, Sink>> {
             Ok(if let Some(path) = value {
