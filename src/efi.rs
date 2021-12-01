@@ -4,7 +4,6 @@
 use std::fs::File;
 use std::io::Write as _;
 use std::path::PathBuf;
-use std::str::from_utf8;
 
 use anyhow::Result;
 use iocuddle::{Group, Ioctl, Read, Write};
@@ -46,15 +45,16 @@ impl<'a> Store<'a> {
         self.path(name).exists()
     }
 
-    pub fn read(&self, name: &str) -> Result<String> {
-        let bytes = std::fs::read(self.path(name))?;
-        Ok(from_utf8(&bytes[4..])?.to_string())
+    pub fn read(&self, name: &str) -> Result<Vec<u8>> {
+        let mut bytes = std::fs::read(self.path(name))?;
+        bytes.drain(0..4);
+        Ok(bytes)
     }
 
-    pub fn write(&self, name: &str, value: &str) -> Result<()> {
+    pub fn write(&self, name: &str, value: impl AsRef<[u8]>) -> Result<()> {
         let mut data = Vec::new();
         data.write_all(&Self::FLAG)?;
-        data.write_all(value.as_bytes())?;
+        data.write_all(value.as_ref())?;
 
         Ok(std::fs::write(self.mutate(name)?, data)?)
     }

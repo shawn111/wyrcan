@@ -128,6 +128,7 @@ impl Command for Boot {
         // If no boot image was specified, look in EFI.
         if img.is_none() && nvr.exists("Image") {
             let image = nvr.read("Image")?;
+            let image = String::from_utf8(image)?;
             eprintln!("* Scanned: {}", image);
             img = Some(image);
         }
@@ -135,6 +136,7 @@ impl Command for Boot {
         // If no arguments were specified, look in EFI.
         if arg.is_empty() && nvr.exists("CmdLine") {
             let cmdline = nvr.read("CmdLine")?;
+            let cmdline = String::from_utf8(cmdline)?;
             eprintln!("* Scanned: {}", cmdline);
             arg.push(cmdline);
         }
