@@ -22,31 +22,41 @@ pub struct Boot {
 
 impl Boot {
     const NOIMG: &'static str = r###"
-No container image target (wyrcan.img=IMG) could be found!
+No container image target (wyr.img=IMG) could be found!
 
 You can use the following kernel cmdline arguments to control Wyrcan:
 
-  * wyrcan.img=IMG - Specifies which container will be booted. IMG should be
-    a container name in the usual format. For example:
+  * wyr.img=IMG - Specifies which container will be booted. IMG should be a
+    container name in the usual format. For example:
 
-      wyrcan.img=registry.gitlab.com/wyrcan/debian:latest
+      wyr.img=registry.gitlab.com/wyrcan/debian:latest
 
-  * wyrcan.arg=ARG - Passes the specified cmdline arguments to the container's
+  * wyr.arg=ARG - Passes the specified cmdline arguments to the container's
     kernel. This argument may be specified multiple times and may be quoted to
     include spaces. The arguments passed within will be ignored by the Wyrcan
     kernel. For example, the following is valid:
 
-      wyrcan.arg="quiet log-buf-len=1M" wyrcan.arg=print-fatal-signals=1
+      wyr.arg="quiet log-buf-len=1M" wyr.arg=print-fatal-signals=1
 
     The container's kernel will receive the following cmdline:
 
       quiet log-buf-len=1M print-fatal-signals=1
 
-  * wyrcan.efi=write - Saves the wyrcan.img and wyrcan.arg parameters to EFI
-    NVRAM. This enables persistent, automated boot.
 
-  * wyrcan.efi=clear - Removes all previously stored values from EFI NVRAM.
-    This disables persistent, automated boot.
+  * wyr.net.W.X.Y=Z - Allows you to specify custom networking parameters.
+    All arguments of this type are collected. Then a systemd.network file is
+    created with the specified contents. For example, the previously outlined
+    config would produce a file /etc/systemd/network/W.network with the
+    following contents:
+
+      [X]
+      Y=Z
+
+  * wyr.efi=write - Saves the wyr.img and wyr.arg parameters to EFI NVRAM.
+    This enables persistent, automated boot.
+
+  * wyr.efi=clear - Removes all previously stored values from EFI NVRAM. This
+    disables persistent, automated boot.
 "###;
 
     const REBOOT: &'static str = "Press enter or return to reboot.";

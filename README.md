@@ -28,7 +28,7 @@ packaging ecosystem to have a bare-metal OS that is:
 There are three basic steps to getting things working:
 
 1. Build and push a *bootable* container.
-2. Configure `wyrcan.img=CONTAINER` to point to the container.
+2. Configure `wyr.img=CONTAINER` to point to the container.
 3. Boot Wyrcan.
 
 From there, Wyrcan will do the rest.
@@ -91,7 +91,7 @@ Registry. New features and distributions, as well as bug fixes, are welcome!
 
 # Configure and Boot Wyrcan
 
-From here we basically want to boot Wyrcan with `wyrcan.img=CONTAINER` in the
+From here we basically want to boot Wyrcan with `wyr.img=CONTAINER` in the
 kernel `cmdline`. How we accomplish this depends on how are going to boot
 Wyrcan. There are two boot methods available: direct boot and ISO boot.
 
@@ -115,7 +115,7 @@ respectively, and fill in an appropriate `cmdline` value.  We reccomend the
 following `cmdline`, however it can be customized to your needs:
 
 ```
-quiet wyrcan.arg=loglevel=3 wyrcan.img=CONTAINER
+quiet wyr.arg=loglevel=3 wyr.img=CONTAINER
 ```
 
 ### Examples
@@ -129,7 +129,7 @@ $ curl -L 'https://gitlab.com/wyrcan/wyrcan/-/jobs/artifacts/latest/raw/wyrcan.i
   > wyrcan.initrd
 
 $ qemu-system-x86_64 \
-  -append "console=ttyS0 quiet wyrcan.arg=loglevel=3 wyrcan.img=CONTAINER" \
+  -append "console=ttyS0 quiet wyr.arg=loglevel=3 wyr.img=CONTAINER" \
   -kernel wyrcan.kernel \
   -initrd wyrcan.initrd \
   -enable-kvm \
@@ -154,7 +154,7 @@ your boot is completely automated.
 set kernel https://gitlab.com/wyrcan/wyrcan/-/jobs/artifacts/latest/raw/wyrcan.kernel?job=images
 set initrd https://gitlab.com/wyrcan/wyrcan/-/jobs/artifacts/latest/raw/wyrcan.initrd?job=images
 
-kernel ${kernel} console=ttyS0 quiet wyrcan.arg=loglevel=3 wyrcan.img=CONTAINER
+kernel ${kernel} console=ttyS0 quiet wyr.arg=loglevel=3 wyr.img=CONTAINER
 initrd ${initrd}
 boot
 ```
@@ -177,7 +177,7 @@ useful for exploration and testing.
 4. When you get to the bootloader menu, press `e`. This brings up the editor
    for the `cmdline`.
 5. Edit the `cmdline` to meet your needs. Make sure to specify
-   `wyrcan.img=CONTAINER`.
+   `wyr.img=CONTAINER`.
 6. Press `ENTER` or `RETURN` to boot.
 
 From here you should see Wyrcan download the specified container and boot it.
@@ -186,11 +186,10 @@ While this works great, we need a way to automate the boot process.
 
 ### Automated
 
-In order to automate the ISO boot process, we need a way to persist
-`wyrcan.img` and `wyrcan.arg`. In order to do this, just add `wyrcan.efi=write`
-to the `cmdline`. Wyrcan will validate your configuration and store it into
-EFI NVRAM. Once this is complete, Wyrcan will reboot to show you the fully
-automated process.
+In order to automate the ISO boot process, we need a way to persist `wyr.img`
+and `wyr.arg`. In order to do this, just add `wyr.efi=write` to the `cmdline`.
+Wyrcan will validate your configuration and store it into EFI NVRAM. Once this
+is complete, Wyrcan will reboot to show you the fully automated process.
 
 Once once the arguments are stored, you no longer need to edit the `cmdline`
 manually. Just let Wyrcan boot from the default option. Wyrcan will find your
@@ -260,7 +259,7 @@ would first boot into the latest release of Wyrcan before booting the final
 image:
 
 ```
-wyrcan.img=registry.gitlab.com/wyrcan/wyrcan wyrcan.arg=wyrcan.img=registry.gitlab.com/wyrcan/debian
+wyr.img=registry.gitlab.com/wyrcan/wyrcan wyr.arg=wyr.img=registry.gitlab.com/wyrcan/debian
 ```
 
 You can see a working chained boot here:
@@ -271,20 +270,20 @@ You can see a working chained boot here:
 
 You can use the following kernel cmdline arguments to control Wyrcan:
 
-  * `wyrcan.img=IMG` - Specifies which container will be booted. IMG should be
+  * `wyr.img=IMG` - Specifies which container will be booted. IMG should be
     a container name in the usual format. For example:
 
     ```
-    wyrcan.img=registry.gitlab.com/wyrcan/debian:latest
+    wyr.img=registry.gitlab.com/wyrcan/debian:latest
     ```
 
-  * `wyrcan.arg=ARG` - Passes the specified cmdline arguments to the container's
+  * `wyr.arg=ARG` - Passes the specified cmdline arguments to the container's
     kernel. This argument may be specified multiple times and may be quoted to
     include spaces. The arguments passed within will be ignored by the Wyrcan
     kernel. For example, the following is valid:
 
     ```
-    wyrcan.arg="quiet log-buf-len=1M" wyrcan.arg=print-fatal-signals=1
+    wyr.arg="quiet log-buf-len=1M" wyr.arg=print-fatal-signals=1
     ```
 
     The container's kernel will receive the following cmdline:
@@ -293,10 +292,21 @@ You can use the following kernel cmdline arguments to control Wyrcan:
     quiet log-buf-len=1M print-fatal-signals=1
     ```
 
-  * `wyrcan.efi=write` - Saves the wyrcan.img and wyrcan.arg parameters to EFI
-    NVRAM. This enables persistent, automated boot.
+  * wyr.net.W.X.Y=Z - Allows you to specify custom networking parameters.
+    All arguments of this type are collected. Then a systemd.network file is
+    created with the specified contents. For example, the previously outlined
+    config would produce a file `/etc/systemd/network/W.network` with the
+    following contents:
 
-  * `wyrcan.efi=clear` - Removes all previously stored values from EFI NVRAM.
+    ```
+    [X]
+    Y=Z
+    ```
+
+  * `wyr.efi=write` - Saves the wyr.img and wyr.arg parameters to EFI NVRAM.
+    This enables persistent, automated boot.
+
+  * `wyr.efi=clear` - Removes all previously stored values from EFI NVRAM.
     This disables persistent, automated boot.
 
 ## Wait... Memory-Resident... Are you using all my RAM!?
