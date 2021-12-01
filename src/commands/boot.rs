@@ -8,7 +8,7 @@ use std::time::Duration;
 
 use super::extract::{Extract, LookAside};
 use super::kexec::Kexec;
-use super::Command;
+use super::{Command, Config};
 use crate::cmdline::CmdLine;
 
 use anyhow::Result;
@@ -23,12 +23,29 @@ enum Efi {
     Clear,
 }
 
+impl Efi {
+    pub fn scan() -> Option<Self> {
+        let mut efi = None;
+
+        for (k, v) in CmdLine::scan().args() {
+            match k {
+                Some("wyrcan.efi") | Some("wyr.efi") => match v {
+                    "write" => efi = Some(Efi::Write),
+                    "clear" => efi = Some(Efi::Clear),
+                    _ => continue,
+                },
+                _ => continue,
+            }
+        }
+
+        efi
+    }
+}
+
 #[derive(StructOpt, Debug)]
 pub struct Boot {}
 
 impl Boot {
-    const UUID: &'static str = "6987e713-a5ff-4ec2-ad55-c1fca471ed2d";
-
     const WARNING: &'static str = r###"
 ⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠ WARNING ⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠
 
@@ -94,56 +111,21 @@ You can use the following kernel cmdline arguments to control Wyrcan:
 
 impl Command for Boot {
     fn execute(self) -> Result<()> {
-        let nvr = crate::efi::Store::new(Self::UUID);
-
-        // Parse the boot cmdline arguments
-        let mut arg = Vec::new();
-        let mut img = None;
-        let mut efi = None;
-        for (k, v) in CmdLine::scan().args() {
-            match (k, v) {
-                (Some("wyrcan.efi"), "write") => efi = Some(Efi::Write),
-                (Some("wyrcan.efi"), "clear") => efi = Some(Efi::Clear),
-                (Some("wyrcan.img"), v) => img = Some(v.to_string()),
-                (Some("wyrcan.arg"), v) => arg.push(v.to_string()),
-                _ => (),
-            }
-        }
+        let cfg = Config::scan();
+        let efi = Efi::scan();
 
         // If the cmdline says to clear EFI, do it...
         if let Some(Efi::Clear) = efi {
             if Self::prompt(Self::WARNING)?.trim() == "yes" {
-                if nvr.exists("CmdLine") {
-                    nvr.clear("CmdLine")?;
-                }
-
-                if nvr.exists("Image") {
-                    nvr.clear("Image")?;
-                }
+                Config::wipe()?;
             }
 
             return Self::reboot();
         }
 
-        // If no boot image was specified, look in EFI.
-        if img.is_none() && nvr.exists("Image") {
-            let image = nvr.read("Image")?;
-            let image = String::from_utf8(image)?;
-            eprintln!("* Scanned: {}", image);
-            img = Some(image);
-        }
-
-        // If no arguments were specified, look in EFI.
-        if arg.is_empty() && nvr.exists("CmdLine") {
-            let cmdline = nvr.read("CmdLine")?;
-            let cmdline = String::from_utf8(cmdline)?;
-            eprintln!("* Scanned: {}", cmdline);
-            arg.push(cmdline);
-        }
-
-        // If we still have no image, give the user some documentation.
-        let img = match img {
-            Some(img) => img,
+        // If we have no config, give the user some documentation.
+        let cfg = match cfg {
+            Some(cfg) => cfg,
             None => {
                 println!("{}", Self::NOIMG);
                 return Self::reboot();
@@ -151,7 +133,7 @@ impl Command for Boot {
         };
 
         // Download and extract the specified container image.
-        eprintln!("* Getting: {}", &img);
+        eprintln!("* Getting: {}", &cfg.image);
         let mut extra = Vec::new();
         for tries in 0.. {
             extra.truncate(0);
@@ -161,7 +143,7 @@ impl Command for Boot {
                 initrd: File::create("/tmp/initrd")?,
                 cmdline: LookAside::cmdline(&mut extra),
                 progress: true,
-                name: img.clone(),
+                name: cfg.image.clone(),
             };
 
             match extract.execute() {
@@ -178,38 +160,35 @@ impl Command for Boot {
         // If specified, save the command line to EFI.
         if let Some(Efi::Write) = efi {
             if Self::prompt(Self::WARNING)?.trim() == "yes" {
-                let args = arg.join(" ");
-                eprintln!("* Writing: {} ({})", img, args);
-                nvr.write("CmdLine", &args)?;
-                nvr.write("Image", &img)?;
+                let args = cfg.cmdline.join(" ");
+                eprintln!("* Writing: {} ({})", cfg.image, args);
+                cfg.save()?;
             }
 
             return Self::reboot();
         }
 
         // Merge the extra arguments with the specified arguments.
-        if !extra.is_empty() {
-            arg.insert(0, extra.to_string());
-        }
-        let all = arg.join(" ");
+        let all = format!(r#"{} "{}""#, extra, cfg.cmdline.join(r#"" ""#));
+        let all = all.trim();
 
         {
             // Set up the spinner
             let pb = ProgressBar::new_spinner();
-            pb.set_message(format!("Loading: {} ({})", img, all));
+            pb.set_message(format!("Loading: {} ({})", cfg.image, all));
             pb.enable_steady_tick(100);
 
             // Load the kernel and initrd.
             Kexec {
                 kernel: PathBuf::from("/tmp/kernel"),
                 initrd: PathBuf::from("/tmp/initrd"),
-                cmdline: all.clone(),
+                cmdline: all.to_string(),
             }
             .execute()?;
         }
 
         // Remove files and exit.
-        eprintln!("* Booting: {} ({})", img, all);
+        eprintln!("* Booting: {} ({})", cfg.image, all);
         std::fs::remove_file("/tmp/kernel")?;
         std::fs::remove_file("/tmp/initrd")?;
         Ok(())
