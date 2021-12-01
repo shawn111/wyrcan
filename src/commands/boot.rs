@@ -124,9 +124,9 @@ impl Command for Boot {
             return Self::reboot();
         }
 
-        // If we have no config, give the user some documentation.
-        let cfg = match cfg {
-            Some(cfg) => cfg,
+        // If we have no image, give the user some documentation.
+        let img = match &cfg.image {
+            Some(img) => img,
             None => {
                 println!("{}", Self::NOIMG);
                 return Self::reboot();
@@ -134,7 +134,7 @@ impl Command for Boot {
         };
 
         // Download and extract the specified container image.
-        eprintln!("* Getting: {}", &cfg.image);
+        eprintln!("* Getting: {}", img);
         let mut extra = Vec::new();
         for tries in 0.. {
             extra.truncate(0);
@@ -144,7 +144,7 @@ impl Command for Boot {
                 initrd: File::create("/tmp/initrd")?,
                 cmdline: LookAside::cmdline(&mut extra),
                 progress: true,
-                name: cfg.image.clone(),
+                name: img.clone(),
             };
 
             match extract.execute() {
@@ -162,7 +162,7 @@ impl Command for Boot {
         if let Some(Efi::Write) = efi {
             if Self::prompt(Self::WARNING)?.trim() == "yes" {
                 let args = cfg.cmdline.join(" ");
-                eprintln!("* Writing: {} ({})", cfg.image, args);
+                eprintln!("* Writing: {} ({})", img, args);
                 cfg.save()?;
             }
 
@@ -176,7 +176,7 @@ impl Command for Boot {
         {
             // Set up the spinner
             let pb = ProgressBar::new_spinner();
-            pb.set_message(format!("Loading: {} ({})", cfg.image, all));
+            pb.set_message(format!("Loading: {} ({})", img, all));
             pb.enable_steady_tick(100);
 
             // Load the kernel and initrd.
@@ -189,7 +189,7 @@ impl Command for Boot {
         }
 
         // Remove files and exit.
-        eprintln!("* Booting: {} ({})", cfg.image, all);
+        eprintln!("* Booting: {} ({})", img, all);
         std::fs::remove_file("/tmp/kernel")?;
         std::fs::remove_file("/tmp/initrd")?;
         Ok(())

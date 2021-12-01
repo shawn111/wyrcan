@@ -20,10 +20,10 @@ impl Net {
 
 impl super::Command for Net {
     fn execute(self) -> anyhow::Result<()> {
-        let mut net = Config::scan().map(|cfg| cfg.network).unwrap_or_default();
+        let mut cfg = Config::scan();
 
         // Specify a default config.
-        if net.is_empty() {
+        if cfg.network.is_empty() {
             let defaults = [
                 ("autoconf.network", "Match", "Type", "ether"),
                 ("autoconf.network", "Network", "DHCP", "yes"),
@@ -31,14 +31,14 @@ impl super::Command for Net {
             ];
 
             for (file, sect, name, data) in defaults {
-                let f = net.entry(file.into()).or_insert_with(HashMap::new);
+                let f = cfg.network.entry(file.into()).or_insert_with(HashMap::new);
                 let s = f.entry(sect.into()).or_insert_with(HashMap::new);
                 s.insert(name.into(), data.into());
             }
         }
 
         // Write out network configuration files.
-        for (file, sections) in net {
+        for (file, sections) in cfg.network {
             let mut f = BufWriter::new(File::create(Path::new(Self::OUTDIR).join(file))?);
 
             for (sect, entries) in sections {

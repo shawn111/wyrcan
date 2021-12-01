@@ -19,7 +19,7 @@ use regex::Regex;
 use serde::{Deserialize, Serialize};
 use structopt::StructOpt;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Default, Serialize, Deserialize)]
 struct Config {
     /// Network files to write into /etc/systemd/network/
     pub network: HashMap<String, HashMap<String, HashMap<String, String>>>,
@@ -28,12 +28,12 @@ struct Config {
     pub cmdline: Vec<String>,
 
     /// The container image to boot
-    pub image: String,
+    pub image: Option<String>,
 }
 
-impl<'a> From<Args<'a>> for Option<Config> {
+impl<'a> From<Args<'a>> for Config {
     fn from(args: Args<'a>) -> Self {
-        let re = Regex::new(Config::RE).unwrap();
+        let re = Regex::new(Self::RE).unwrap();
 
         let mut net = HashMap::new();
         let mut img = None;
@@ -59,11 +59,11 @@ impl<'a> From<Args<'a>> for Option<Config> {
             }
         }
 
-        Some(Config {
+        Self {
             network: net,
             cmdline: arg,
-            image: img?,
-        })
+            image: img,
+        }
     }
 }
 
@@ -74,21 +74,22 @@ impl Config {
         "([a-zA-Z0-9]+)\\.([a-zA-Z0-9]+)\\.([a-zA-Z0-9]+)$"
     );
 
-    pub fn scan() -> Option<Self> {
+    pub fn scan() -> Self {
         // Check the kernel cmdline
-        if let Some(cfg) = CmdLine::scan().args().into() {
-            return Some(cfg);
+        let cfg: Self = CmdLine::scan().args().into();
+        if cfg.image.is_some() {
+            return cfg;
         }
 
         // Check EFI NVRAM
         let nvr = Store::new(Self::UUID);
         if let Ok(val) = nvr.read("Wyrcan") {
             if let Ok(cfg) = serde_json::from_slice(&val) {
-                return Some(cfg);
+                return cfg;
             }
         }
 
-        None
+        Self::default()
     }
 
     pub fn wipe() -> anyhow::Result<()> {
