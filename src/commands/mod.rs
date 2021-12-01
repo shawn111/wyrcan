@@ -3,6 +3,7 @@
 
 mod boot;
 mod convert;
+mod efi;
 mod extract;
 mod kexec;
 mod net;
@@ -116,18 +117,27 @@ pub trait Command {
 #[structopt(about = "The Container Bootloader")]
 pub enum Main {
     #[structopt(setting(structopt::clap::AppSettings::Hidden))]
+    Efi(efi::Efi),
+
+    #[structopt(setting(structopt::clap::AppSettings::Hidden))]
     Net(net::Net),
+
     #[structopt(setting(structopt::clap::AppSettings::Hidden))]
     Boot(boot::Boot),
+
     Tags(tags::Tags),
+
     Kexec(kexec::Kexec),
+
     Unpack(unpack::Unpack),
+
     Convert(convert::Convert),
 }
 
 impl Command for Main {
     fn execute(self) -> anyhow::Result<()> {
         match self {
+            Self::Efi(cmd) => cmd.execute(),
             Self::Net(cmd) => cmd.execute(),
             Self::Boot(cmd) => cmd.execute(),
             Self::Tags(cmd) => cmd.execute(),

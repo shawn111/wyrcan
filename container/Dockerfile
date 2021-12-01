@@ -20,5 +20,6 @@ RUN systemctl mask console-getty.service serial-getty@.service getty@.service ge
 COPY rescue.service /etc/systemd/system/
 COPY wyrcan.service /etc/systemd/system/
 COPY wyrnet.service /etc/systemd/system/
+COPY wyrefi.service /etc/systemd/system/
 COPY wyrcan /usr/local/bin/
-RUN systemctl enable wyrcan.service wyrnet.service
+RUN systemctl enable wyrcan.service wyrnet.service wyrefi.service

@@ -1,0 +1,12 @@
+[Unit]
+Description=Wyrcan EFI
+ConditionKernelCommandLine=|wyrcan.efi=clear
+ConditionKernelCommandLine=|wyr.efi=clear
+Before=wyrnet.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/wyrcan efi
+
+[Install]
+RequiredBy=wyrnet.service

@@ -10,6 +10,7 @@ FailureAction=reboot
 Type=oneshot
 ExecStart=/bin/networkctl status -n0
 ExecStart=/usr/local/bin/wyrcan boot
+ExecStart=/usr/local/bin/wyrcan efi
 ExecStart=/bin/bash -c "/bin/networkctl down `ls /sys/class/net/`"
 StandardInput=tty
 TTYVHangup=yes

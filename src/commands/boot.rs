@@ -9,36 +9,10 @@ use std::time::Duration;
 use super::extract::{Extract, LookAside};
 use super::kexec::Kexec;
 use super::{Command, Config};
-use crate::cmdline::CmdLine;
 
 use anyhow::Result;
 use indicatif::ProgressBar;
 use structopt::StructOpt;
-
-#[derive(Copy, Clone, Debug)]
-enum Efi {
-    Write,
-    Clear,
-}
-
-impl Efi {
-    pub fn scan() -> Option<Self> {
-        let mut efi = None;
-
-        for (k, v) in CmdLine::scan().args() {
-            match k {
-                Some("wyrcan.efi") | Some("wyr.efi") => match v {
-                    "write" => efi = Some(Efi::Write),
-                    "clear" => efi = Some(Efi::Clear),
-                    _ => continue,
-                },
-                _ => continue,
-            }
-        }
-
-        efi
-    }
-}
 
 #[derive(StructOpt, Debug)]
 pub struct Boot {
@@ -47,19 +21,6 @@ pub struct Boot {
 }
 
 impl Boot {
-    const WARNING: &'static str = r###"
-⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠ WARNING ⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠
-
-On some buggy hardware, modifying an EFI variable can cause the hardware to
-become unresponsive. Proceeding with this action could cause irreversible
-damage to your hardware. The developers of Wyrcan are not liable for any
-hardware defects triggered by this action.
-
-⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠ WARNING ⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠⚠
-
-Would you like to proceed? [yes/no]
-"###;
-
     const NOIMG: &'static str = r###"
 No container image target (wyrcan.img=IMG) could be found!
 
@@ -113,16 +74,6 @@ You can use the following kernel cmdline arguments to control Wyrcan:
 impl Command for Boot {
     fn execute(self) -> Result<()> {
         let cfg = Config::scan();
-        let efi = Efi::scan();
-
-        // If the cmdline says to clear EFI, do it...
-        if let Some(Efi::Clear) = efi {
-            if Self::prompt(Self::WARNING)?.trim() == "yes" {
-                Config::wipe()?;
-            }
-
-            return Self::reboot();
-        }
 
         // If we have no image, give the user some documentation.
         let img = match &cfg.image {
@@ -157,17 +108,6 @@ impl Command for Boot {
         }
         let extra = String::from_utf8(extra)?;
         let extra = extra.trim();
-
-        // If specified, save the command line to EFI.
-        if let Some(Efi::Write) = efi {
-            if Self::prompt(Self::WARNING)?.trim() == "yes" {
-                let args = cfg.cmdline.join(" ");
-                eprintln!("* Writing: {} ({})", img, args);
-                cfg.save()?;
-            }
-
-            return Self::reboot();
-        }
 
         // Merge the extra arguments with the specified arguments.
         let all = format!(r#"{} "{}""#, extra, cfg.cmdline.join(r#"" ""#));
