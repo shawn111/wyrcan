@@ -7,6 +7,9 @@ Before=wyrnet.service
 [Service]
 Type=oneshot
 ExecStart=/usr/local/bin/wyrcan efi
+StandardInput=tty
+TTYVHangup=yes
+TTYReset=yes
 
 [Install]
 RequiredBy=wyrnet.service
