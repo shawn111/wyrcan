@@ -31,7 +31,7 @@ impl Arg {
     }
 }
 
-/// Load a kernel to be executed on reboot
+/// Write or clear configuration to EFI NVRAM
 #[derive(StructOpt, Debug)]
 pub struct Efi {}
 
