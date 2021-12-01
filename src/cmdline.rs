@@ -1,21 +1,39 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright (C) 2021 Profian, Inc.
 
-use std::str::from_utf8;
+use std::{io::ErrorKind, path::Path, str::from_utf8};
 
-pub struct CmdLine<'a>(&'a [u8]);
+pub struct CmdLine<T: AsRef<str>>(T);
 
-impl<'a> CmdLine<'a> {
-    pub fn new(value: &'a str) -> Option<Self> {
-        if value.is_ascii() {
-            Some(Self(value.as_bytes()))
-        } else {
-            None
+impl<T: AsRef<str>> CmdLine<T> {
+    const PATH: &'static str = "/proc/cmdline";
+
+    pub fn new(cmdline: T) -> std::io::Result<Self> {
+        if cmdline.as_ref().is_ascii() {
+            return Ok(Self(cmdline));
         }
+
+        Err(ErrorKind::InvalidData.into())
+    }
+
+    pub fn args(&self) -> Args {
+        Args(self.0.as_ref().as_bytes())
     }
 }
 
-impl<'a> Iterator for CmdLine<'a> {
+impl CmdLine<String> {
+    pub fn load(path: impl AsRef<Path>) -> std::io::Result<Self> {
+        Self::new(std::fs::read_to_string(path)?)
+    }
+
+    pub fn scan() -> Self {
+        Self::load(Self::PATH).unwrap_or_else(|_| Self(String::new()))
+    }
+}
+
+pub struct Args<'a>(&'a [u8]);
+
+impl<'a> Iterator for Args<'a> {
     type Item = (Option<&'a str>, &'a str);
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -73,34 +91,31 @@ impl<'a> Iterator for CmdLine<'a> {
 
 #[cfg(test)]
 mod test {
-    use super::CmdLine;
+    use super::*;
 
     #[test]
     fn empty() {
         let cmdline = CmdLine::new("").unwrap();
-        assert_eq!(cmdline.collect::<Vec<_>>(), []);
+        assert_eq!(cmdline.args().next(), None);
     }
 
     #[test]
     fn noquotes() {
         let cmdline = CmdLine::new(" \t foo=bar bat\tbaz=qux quz\t").unwrap();
-        assert_eq!(
-            cmdline.collect::<Vec<_>>(),
-            [
-                (Some("foo"), "bar"),
-                (None, "bat"),
-                (Some("baz"), "qux"),
-                (None, "quz")
-            ]
-        );
+        let mut args = cmdline.args();
+        assert_eq!(args.next(), Some((Some("foo"), "bar")));
+        assert_eq!(args.next(), Some((None, "bat")));
+        assert_eq!(args.next(), Some((Some("baz"), "qux")));
+        assert_eq!(args.next(), Some((None, "quz")));
+        assert_eq!(args.next(), None);
     }
 
     #[test]
     fn quotes() {
         let cmdline = CmdLine::new("\t  foo=\"bar bat\" \"baz=qux\tquz\"  \t").unwrap();
-        assert_eq!(
-            cmdline.collect::<Vec<_>>(),
-            [(Some("foo"), "bar bat"), (Some("baz"), "qux\tquz"),]
-        );
+        let mut args = cmdline.args();
+        assert_eq!(args.next(), Some((Some("foo"), "bar bat")));
+        assert_eq!(args.next(), Some((Some("baz"), "qux\tquz")));
+        assert_eq!(args.next(), None);
     }
 }

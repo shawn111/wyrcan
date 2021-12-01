@@ -96,20 +96,11 @@ impl Command for Boot {
     fn execute(self) -> Result<()> {
         let nvr = crate::efi::Store::new(Self::UUID);
 
-        let bcl = std::fs::read_to_string("/proc/cmdline")?;
-        let bcl = match CmdLine::new(&bcl) {
-            Some(cmdline) => cmdline,
-            None => {
-                eprintln!("error: kernel cmdline is not ascii");
-                return Self::reboot();
-            }
-        };
-
         // Parse the boot cmdline arguments
         let mut arg = Vec::new();
         let mut img = None;
         let mut efi = None;
-        for (k, v) in bcl {
+        for (k, v) in CmdLine::scan().args() {
             match (k, v) {
                 (Some("wyrcan.efi"), "write") => efi = Some(Efi::Write),
                 (Some("wyrcan.efi"), "clear") => efi = Some(Efi::Clear),
