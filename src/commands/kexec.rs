@@ -5,7 +5,7 @@ use std::ffi::{CStr, CString};
 use std::fmt::Arguments;
 use std::fs::File;
 use std::os::unix::prelude::*;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 use crate::commands::extract::{Extract, LookAside};
@@ -76,20 +76,15 @@ impl Kexec {
         Ok(())
     }
 
-    pub fn write_fmt(&self, args: Arguments<'_>) -> Result<(), std::io::Error> {
+    fn write_fmt(&self, args: Arguments<'_>) -> Result<(), std::io::Error> {
         if !self.quiet {
             eprintln!("● {}", args);
         }
 
         Ok(())
     }
-}
 
-impl Command for Kexec {
-    fn execute(self) -> anyhow::Result<()> {
-        let kernel = PathBuf::from(format!("/tmp/wyrcan.{}.kernel", std::process::id()));
-        let initrd = PathBuf::from(format!("/tmp/wyrcan.{}.initrd", std::process::id()));
-
+    fn run(&self, kernel: &Path, initrd: &Path) -> anyhow::Result<()> {
         write!(self, "Getting: {}", self.image)?;
 
         // Download and extract the specified container image.
@@ -98,8 +93,8 @@ impl Command for Kexec {
             extra.truncate(0);
 
             let extract = Extract {
-                kernel: LookAside::kernel(File::create(&kernel)?),
-                initrd: File::create(&initrd)?,
+                kernel: LookAside::kernel(File::create(kernel)?),
+                initrd: File::create(initrd)?,
                 cmdline: LookAside::cmdline(&mut extra),
                 progress: true,
                 image: self.image.clone(),
@@ -123,15 +118,32 @@ impl Command for Kexec {
         // Do the kexec.
         write!(self, "Loading: {} ({})", self.image, all)?;
         let all = CString::new(all)?;
-        Self::kexec(File::open(&kernel)?, File::open(&initrd)?, &all)?;
+        Self::kexec(File::open(kernel)?, File::open(initrd)?, &all)?;
 
         // Wait for the kernel to tell us it is ready.
         while std::fs::read("/sys/kernel/kexec_loaded")? != [b'1', b'\n'] {
             std::thread::sleep(Duration::from_millis(100));
         }
 
-        std::fs::remove_file(kernel)?;
-        std::fs::remove_file(initrd)?;
         Ok(())
+    }
+}
+
+impl Command for Kexec {
+    fn execute(self) -> anyhow::Result<()> {
+        let kernel = PathBuf::from(format!("/tmp/wyrcan.{}.kernel", std::process::id()));
+        let initrd = PathBuf::from(format!("/tmp/wyrcan.{}.initrd", std::process::id()));
+
+        let result = self.run(&kernel, &initrd);
+
+        if kernel.exists() {
+            std::fs::remove_file(kernel)?;
+        }
+
+        if initrd.exists() {
+            std::fs::remove_file(initrd)?;
+        }
+
+        result
     }
 }
