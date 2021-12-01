@@ -7,7 +7,6 @@ mod efi;
 mod extract;
 mod kexec;
 mod net;
-mod tags;
 mod unpack;
 mod unpacker;
 
@@ -125,8 +124,6 @@ pub enum Main {
     #[structopt(setting(structopt::clap::AppSettings::Hidden))]
     Boot(boot::Boot),
 
-    Tags(tags::Tags),
-
     Kexec(kexec::Kexec),
 
     Unpack(unpack::Unpack),
@@ -140,7 +137,6 @@ impl Command for Main {
             Self::Efi(cmd) => cmd.execute(),
             Self::Net(cmd) => cmd.execute(),
             Self::Boot(cmd) => cmd.execute(),
-            Self::Tags(cmd) => cmd.execute(),
             Self::Kexec(cmd) => cmd.execute(),
             Self::Unpack(cmd) => cmd.execute(),
             Self::Convert(cmd) => cmd.execute(),

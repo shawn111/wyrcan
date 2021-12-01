@@ -133,19 +133,6 @@ impl Repository {
         Ok((out, tag))
     }
 
-    pub fn tags(&self) -> Result<Vec<String>> {
-        #[derive(Debug, Deserialize)]
-        struct Tags {
-            #[allow(dead_code)]
-            name: String,
-            tags: Vec<String>,
-        }
-
-        let rep = self.get("tags/list", &[])?;
-        let tags: Tags = rep.into_json()?;
-        Ok(tags.tags)
-    }
-
     pub fn image(&self, tag: &str) -> Result<Image> {
         Image::new(self.clone(), tag)
     }
