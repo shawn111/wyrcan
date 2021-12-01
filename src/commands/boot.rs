@@ -1,22 +1,22 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright (C) 2021 Profian, Inc.
 
-use std::fs::File;
 use std::io::Error;
-use std::path::PathBuf;
-use std::time::Duration;
 
-use super::extract::{Extract, LookAside};
 use super::kexec::Kexec;
 use super::{Command, Config};
 
 use anyhow::Result;
-use indicatif::ProgressBar;
 use structopt::StructOpt;
 
 #[derive(StructOpt, Debug)]
 pub struct Boot {
-    #[structopt(default_value = "5")]
+    /// Don't display the progress bar
+    #[structopt(short, long)]
+    quiet: bool,
+
+    /// Number of retries for network failures.
+    #[structopt(short, long, default_value = "5")]
     tries: u32,
 }
 
@@ -94,54 +94,21 @@ impl Command for Boot {
             }
         };
 
-        // Download and extract the specified container image.
-        eprintln!("● Getting: {}", img);
-        let mut extra = Vec::new();
-        for tries in 0.. {
-            extra.truncate(0);
+        // Prepare the cmdline.
+        let cmdline = if cfg.cmdline.is_empty() {
+            None
+        } else {
+            Some(format!(r#""{}""#, cfg.cmdline.join(r#"" ""#)))
+        };
 
-            let extract = Extract {
-                kernel: LookAside::kernel(File::create("/tmp/kernel")?),
-                initrd: File::create("/tmp/initrd")?,
-                cmdline: LookAside::cmdline(&mut extra),
-                image: img.clone(),
-                progress: true,
-            };
+        // Do the kexec.
+        let kexec = Kexec {
+            quiet: self.quiet,
+            tries: self.tries,
+            image: img.clone(),
+            cmdline,
+        };
 
-            match extract.execute() {
-                Err(e) if tries < self.tries => eprintln!("● Failure: {}", e),
-                Err(e) => return Err(e),
-                Ok(()) => break,
-            }
-
-            std::thread::sleep(Duration::from_secs(2u64.pow(tries)));
-        }
-        let extra = String::from_utf8(extra)?;
-        let extra = extra.trim();
-
-        // Merge the extra arguments with the specified arguments.
-        let all = format!(r#"{} "{}""#, extra, cfg.cmdline.join(r#"" ""#));
-        let all = all.trim();
-
-        {
-            // Set up the spinner
-            let pb = ProgressBar::new_spinner();
-            pb.set_message(format!("Loading: {} ({})", img, all));
-            pb.enable_steady_tick(100);
-
-            // Load the kernel and initrd.
-            Kexec {
-                kernel: PathBuf::from("/tmp/kernel"),
-                initrd: PathBuf::from("/tmp/initrd"),
-                cmdline: all.to_string(),
-            }
-            .execute()?;
-        }
-
-        // Remove files and exit.
-        eprintln!("● Booting: {} ({})", img, all);
-        std::fs::remove_file("/tmp/kernel")?;
-        std::fs::remove_file("/tmp/initrd")?;
-        Ok(())
+        kexec.execute()
     }
 }

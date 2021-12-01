@@ -2,29 +2,35 @@
 // Copyright (C) 2021 Profian, Inc.
 
 use std::ffi::{CStr, CString};
+use std::fmt::Arguments;
 use std::fs::File;
+use std::io::{Seek, SeekFrom};
 use std::os::unix::prelude::*;
-use std::path::PathBuf;
 use std::time::Duration;
+
+use crate::commands::extract::{Extract, LookAside};
 
 use super::Command;
 
 use structopt::StructOpt;
 
-/// Load a kernel to be executed on reboot
+/// Load a container to be executed on reboot
 #[derive(StructOpt, Debug)]
 pub struct Kexec {
-    /// The path to the kernel to load
-    #[structopt(long, short)]
-    pub kernel: PathBuf,
+    /// Don't display the progress bar
+    #[structopt(short, long)]
+    pub quiet: bool,
 
-    /// The path to the initrd to load
-    #[structopt(long, short)]
-    pub initrd: PathBuf,
+    /// The container image (format: [source]name[:tag|@digest])
+    pub image: String,
 
     /// The kernel command line to use after reboot
     #[structopt(long, short)]
-    pub cmdline: String,
+    pub cmdline: Option<String>,
+
+    /// Number of retries for network failures.
+    #[structopt(short, long, default_value = "5")]
+    pub tries: u32,
 }
 
 impl Kexec {
@@ -69,15 +75,59 @@ impl Kexec {
 
         Ok(())
     }
+
+    pub fn write_fmt(&self, args: Arguments<'_>) -> Result<(), std::io::Error> {
+        if !self.quiet {
+            eprintln!("● {}", args);
+        }
+
+        Ok(())
+    }
 }
 
 impl Command for Kexec {
     fn execute(self) -> anyhow::Result<()> {
-        let kernel = File::open(self.kernel)?;
-        let initrd = File::open(self.initrd)?;
-        let cmdline = CString::new(self.cmdline)?;
+        let mut kernel = tempfile::tempfile()?;
+        let mut initrd = tempfile::tempfile()?;
 
-        Self::kexec(kernel, initrd, &cmdline)?;
+        write!(self, "Getting: {}", self.image)?;
+
+        // Download and extract the specified container image.
+        let mut extra = Vec::new();
+        for tries in 0.. {
+            extra.truncate(0);
+
+            let extract = Extract {
+                kernel: LookAside::kernel(&mut kernel),
+                initrd: &mut initrd,
+                cmdline: LookAside::cmdline(&mut extra),
+                progress: true,
+                image: self.image.clone(),
+            };
+
+            match extract.execute() {
+                Err(e) if tries < self.tries => write!(self, "Failure: {}", e)?,
+                Err(e) => return Err(e),
+                Ok(()) => break,
+            }
+
+            std::thread::sleep(Duration::from_secs(2u64.pow(tries)));
+        }
+        let extra = String::from_utf8(extra)?;
+        let extra = extra.trim();
+
+        // Reset to the start of the file.
+        kernel.seek(SeekFrom::Start(0))?;
+        initrd.seek(SeekFrom::Start(0))?;
+
+        // Merge the extra arguments with the specified arguments.
+        let all = format!(r#"{} {}"#, extra, self.cmdline.as_deref().unwrap_or(""));
+        let all = all.trim();
+
+        // Do the kexec.
+        write!(self, "Loading: {} ({})", self.image, all)?;
+        let all = CString::new(all)?;
+        Self::kexec(kernel, initrd, &all)?;
 
         // Wait for the kernel to tell us it is ready.
         while std::fs::read("/sys/kernel/kexec_loaded")? != [b'1', b'\n'] {
