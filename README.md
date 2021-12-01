@@ -292,7 +292,7 @@ You can use the following kernel cmdline arguments to control Wyrcan:
     quiet log-buf-len=1M print-fatal-signals=1
     ```
 
-  * wyr.net.W.X.Y=Z - Allows you to specify custom networking parameters.
+  * `wyr.net.W.X.Y=Z` - Allows you to specify custom networking parameters.
     All arguments of this type are collected. Then a systemd.network file is
     created with the specified contents. For example, the previously outlined
     config would produce a file `/etc/systemd/network/W.network` with the
