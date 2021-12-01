@@ -95,7 +95,7 @@ impl Command for Boot {
         };
 
         // Download and extract the specified container image.
-        eprintln!("* Getting: {}", img);
+        eprintln!("● Getting: {}", img);
         let mut extra = Vec::new();
         for tries in 0.. {
             extra.truncate(0);
@@ -109,7 +109,7 @@ impl Command for Boot {
             };
 
             match extract.execute() {
-                Err(e) if tries < self.tries => eprintln!("* Failure: {}", e),
+                Err(e) if tries < self.tries => eprintln!("● Failure: {}", e),
                 Err(e) => return Err(e),
                 Ok(()) => break,
             }
@@ -139,7 +139,7 @@ impl Command for Boot {
         }
 
         // Remove files and exit.
-        eprintln!("* Booting: {} ({})", img, all);
+        eprintln!("● Booting: {} ({})", img, all);
         std::fs::remove_file("/tmp/kernel")?;
         std::fs::remove_file("/tmp/initrd")?;
         Ok(())
