@@ -4,8 +4,8 @@
 use std::ffi::{CStr, CString};
 use std::fmt::Arguments;
 use std::fs::File;
-use std::io::{Seek, SeekFrom};
 use std::os::unix::prelude::*;
+use std::path::PathBuf;
 use std::time::Duration;
 
 use crate::commands::extract::{Extract, LookAside};
@@ -87,8 +87,8 @@ impl Kexec {
 
 impl Command for Kexec {
     fn execute(self) -> anyhow::Result<()> {
-        let mut kernel = tempfile::tempfile()?;
-        let mut initrd = tempfile::tempfile()?;
+        let kernel = PathBuf::from(format!("/tmp/wyrcan.{}.kernel", std::process::id()));
+        let initrd = PathBuf::from(format!("/tmp/wyrcan.{}.initrd", std::process::id()));
 
         write!(self, "Getting: {}", self.image)?;
 
@@ -98,8 +98,8 @@ impl Command for Kexec {
             extra.truncate(0);
 
             let extract = Extract {
-                kernel: LookAside::kernel(&mut kernel),
-                initrd: &mut initrd,
+                kernel: LookAside::kernel(File::create(&kernel)?),
+                initrd: File::create(&initrd)?,
                 cmdline: LookAside::cmdline(&mut extra),
                 progress: true,
                 image: self.image.clone(),
@@ -116,10 +116,6 @@ impl Command for Kexec {
         let extra = String::from_utf8(extra)?;
         let extra = extra.trim();
 
-        // Reset to the start of the file.
-        kernel.seek(SeekFrom::Start(0))?;
-        initrd.seek(SeekFrom::Start(0))?;
-
         // Merge the extra arguments with the specified arguments.
         let all = format!(r#"{} {}"#, extra, self.cmdline.as_deref().unwrap_or(""));
         let all = all.trim();
@@ -127,13 +123,15 @@ impl Command for Kexec {
         // Do the kexec.
         write!(self, "Loading: {} ({})", self.image, all)?;
         let all = CString::new(all)?;
-        Self::kexec(kernel, initrd, &all)?;
+        Self::kexec(File::open(&kernel)?, File::open(&initrd)?, &all)?;
 
         // Wait for the kernel to tell us it is ready.
         while std::fs::read("/sys/kernel/kexec_loaded")? != [b'1', b'\n'] {
             std::thread::sleep(Duration::from_millis(100));
         }
 
+        std::fs::remove_file(kernel)?;
+        std::fs::remove_file(initrd)?;
         Ok(())
     }
 }
