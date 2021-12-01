@@ -15,8 +15,6 @@ use anyhow::Result;
 use indicatif::ProgressBar;
 use structopt::StructOpt;
 
-const MAX_TRIES: u32 = 5;
-
 #[derive(Copy, Clone, Debug)]
 enum Efi {
     Write,
@@ -43,7 +41,10 @@ impl Efi {
 }
 
 #[derive(StructOpt, Debug)]
-pub struct Boot {}
+pub struct Boot {
+    #[structopt(default_value = "5")]
+    tries: u32,
+}
 
 impl Boot {
     const WARNING: &'static str = r###"
@@ -147,7 +148,7 @@ impl Command for Boot {
             };
 
             match extract.execute() {
-                Err(e) if tries < MAX_TRIES => eprintln!("* Failure: {}", e),
+                Err(e) if tries < self.tries => eprintln!("* Failure: {}", e),
                 Err(e) => return Err(e),
                 Ok(()) => break,
             }
