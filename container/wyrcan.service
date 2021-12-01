@@ -8,7 +8,6 @@ FailureAction=reboot
 
 [Service]
 Type=oneshot
-ExecStart=/bin/ln -sf /run/systemd/resolve/stub-resolv.conf /etc/resolv.conf
 ExecStart=/bin/networkctl status -n0
 ExecStart=/usr/local/bin/wyrcan boot
 ExecStart=/bin/bash -c "/bin/networkctl down `ls /sys/class/net/`"

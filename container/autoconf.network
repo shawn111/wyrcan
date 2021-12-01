@@ -1,7 +1,0 @@
-[Match]
-Name=*
-Type=ether
-
-[Network]
-IPv6AcceptRA=yes
-DHCP=yes

@@ -10,15 +10,15 @@ RUN apt update \
 COPY zramswap /etc/default/zramswap
 
 # Enable networking.
-COPY autoconf.override /etc/systemd/system/systemd-networkd-wait-online.service.d/override.conf
-COPY autoconf.network /etc/systemd/network/autoconf.network
+COPY wait-online.override /etc/systemd/system/systemd-networkd-wait-online.service.d/override.conf
 RUN systemctl enable systemd-resolved.service systemd-networkd.service
 
 # Disable all login services
 RUN systemctl mask console-getty.service serial-getty@.service getty@.service getty.target
 
-# Set up the wyrcan boot service
+# Set up the wyrcan
 COPY rescue.service /etc/systemd/system/
 COPY wyrcan.service /etc/systemd/system/
+COPY wyrnet.service /etc/systemd/system/
 COPY wyrcan /usr/local/bin/
-RUN systemctl enable wyrcan.service
+RUN systemctl enable wyrcan.service wyrnet.service
