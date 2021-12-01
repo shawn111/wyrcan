@@ -31,9 +31,8 @@ pub struct Morph {
     #[structopt(short, long)]
     quiet: bool,
 
-    /// The repository name (format: [source]name[:tag|@digest])
-    #[structopt(help = "[source]name[:tag|@digest]")]
-    name: String,
+    /// The container image (format: [source]name[:tag|@digest])
+    image: String,
 }
 
 impl Command for Morph {
@@ -50,7 +49,7 @@ impl Command for Morph {
             kernel: LookAside::kernel(create(self.kernel.as_ref())?),
             initrd: create(self.initrd.as_ref())?,
             cmdline: LookAside::cmdline(create(self.cmdline.as_ref())?),
-            name: self.name,
+            image: self.image,
             progress: !self.quiet,
         };
 

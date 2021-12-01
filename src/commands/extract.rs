@@ -70,13 +70,13 @@ pub struct Extract<K: Write, I: Write, C: Write> {
     pub kernel: LookAside<K>,
     pub initrd: I,
     pub cmdline: LookAside<C>,
-    pub name: String,
+    pub image: String,
     pub progress: bool,
 }
 
 impl<K: Write, I: Write, C: Write> Command for Extract<K, I, C> {
     fn execute(self) -> anyhow::Result<()> {
-        let (repo, tag) = Repository::new(&self.name)?;
+        let (repo, tag) = Repository::new(&self.image)?;
         let image = repo.image(tag)?;
         let unpacker = Unpacker::new(&image, self.progress)?;
 

@@ -19,8 +19,8 @@ use structopt::StructOpt;
 /// Unpacks a container into the given directory
 #[derive(StructOpt, Debug)]
 pub struct Unpack {
-    /// The repository name (format: [source]name[:tag|@digest])
-    name: String,
+    /// The container image (format: [source]name[:tag|@digest])
+    image: String,
 
     /// The output directory (will be created)
     output: PathBuf,
@@ -34,7 +34,7 @@ impl Command for Unpack {
     fn execute(self) -> Result<()> {
         std::fs::create_dir(&self.output)?;
 
-        let (repo, tag) = Repository::new(&self.name)?;
+        let (repo, tag) = Repository::new(&self.image)?;
         let image = repo.image(tag)?;
         let unpacker = Unpacker::new(&image, !self.quiet)?;
 

@@ -104,8 +104,8 @@ impl Command for Boot {
                 kernel: LookAside::kernel(File::create("/tmp/kernel")?),
                 initrd: File::create("/tmp/initrd")?,
                 cmdline: LookAside::cmdline(&mut extra),
+                image: img.clone(),
                 progress: true,
-                name: img.clone(),
             };
 
             match extract.execute() {
