@@ -292,16 +292,20 @@ You can use the following kernel cmdline arguments to control Wyrcan:
     quiet log-buf-len=1M print-fatal-signals=1
     ```
 
-  * `wyr.net.W.X.Y=Z` - Allows you to specify custom networking parameters.
-    All arguments of this type are collected. Then a systemd.network file is
-    created with the specified contents. For example, the previously outlined
-    config would produce a file `/etc/systemd/network/W.network` with the
-    following contents:
+  * `wyr.net.[KIND.]FILE.SECTION.KEY=VAL` - Allows you to specify custom
+    networking parameters. All arguments of this type are grouped into files.
+    Then a `systemd.KIND` file is created with the specified contents. If
+    `KIND` is not specified, it defaults to `network`.  For example, the
+    previously outlined config would produce `/etc/systemd/network/FILE.KIND`
+    with the following contents:
 
     ```
-    [X]
-    Y=Z
+    [SECTION]
+    KEY=VAL
     ```
+
+    See the `systemd-networkd` documentation for the full range of
+    configuration possibilities.
 
   * `wyr.efi=write` - Saves the wyr.img and wyr.arg parameters to EFI NVRAM.
     This enables persistent, automated boot.

@@ -45,7 +45,8 @@ impl<'a> From<Args<'a>> for Config {
                 Some("wyrcan.img") | Some("wyr.img") => img = Some(v.into()),
                 Some("wyrcan.arg") | Some("wyr.arg") => arg.push(v.into()),
                 Some(k) if let Some(cap) = re.captures(k) => {
-                    let file = format!("{}.network", &cap[2]);
+                    let kind = cap.get(1).map(|m| m.as_str()).unwrap_or("network");
+                    let file = format!("{}.{}", &cap[2], kind);
                     let sect = cap[3].into();
                     let name = cap[4].into();
                     let data = v.into();
@@ -70,8 +71,12 @@ impl<'a> From<Args<'a>> for Config {
 impl Config {
     const UUID: &'static str = "6987e713-a5ff-4ec2-ad55-c1fca471ed2d";
     const RE: &'static str = concat!(
-        "^(wyrcan|wyr)\\.net\\.",
-        "([a-zA-Z0-9]+)\\.([a-zA-Z0-9]+)\\.([a-zA-Z0-9]+)$"
+        "^(?:wyrcan|wyr)\\.",
+        "net\\.",
+        "(?:(link|netdev|network)\\.)?",
+        "([a-zA-Z0-9_-]+)\\.",
+        "([a-zA-Z0-9]+)\\.",
+        "([a-zA-Z0-9]+)$",
     );
 
     pub fn scan() -> Self {
