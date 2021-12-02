@@ -19,10 +19,12 @@ use regex::Regex;
 use serde::{Deserialize, Serialize};
 use structopt::StructOpt;
 
+type IniFile = HashMap<String, HashMap<String, String>>;
+
 #[derive(Debug, Default, Serialize, Deserialize)]
 struct Config {
     /// Network files to write into /etc/systemd/network/
-    pub network: HashMap<String, HashMap<String, HashMap<String, String>>>,
+    pub network: HashMap<String, IniFile>,
 
     /// Post-kexec cmdline arguments
     pub cmdline: Vec<String>,
