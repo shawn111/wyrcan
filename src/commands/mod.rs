@@ -44,9 +44,7 @@ impl<'a> From<Args<'a>> for Config {
             match k {
                 Some("wyrcan.img") | Some("wyr.img") => img = Some(v.into()),
                 Some("wyrcan.arg") | Some("wyr.arg") => arg.push(v.into()),
-                Some(k) if re.is_match(k) => {
-                    let cap = re.captures(k).unwrap();
-
+                Some(k) if let Some(cap) = re.captures(k) => {
                     let file = format!("{}.network", &cap[2]);
                     let sect = cap[3].into();
                     let name = cap[4].into();
