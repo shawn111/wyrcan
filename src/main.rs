@@ -3,6 +3,7 @@
 
 #![feature(asm, if_let_guard)]
 #![warn(clippy::all)]
+#![allow(clippy::useless_conversion)]
 
 mod api;
 mod cmdline;
