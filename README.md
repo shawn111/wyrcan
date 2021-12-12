@@ -1,3 +1,5 @@
+![Wyrcan Logo](logo/WYRCAN_LIGHT.png)
+
 # Wyrcan ~ The Container Bootloader
 
 Wyrcan is a bootloader that **boots** into a container. That's all it does.
