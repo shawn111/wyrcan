@@ -180,7 +180,7 @@ impl std::fmt::Display for Digest {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}:", self.algorithm())?;
 
-        for byte in self.0.as_ref().iter().cloned() {
+        for byte in self.0.as_ref() {
             write!(f, "{:02x}", byte)?;
         }
 
