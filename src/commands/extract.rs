@@ -80,9 +80,24 @@ impl<K: Write, I: Write, C: Write> Command for Extract<K, I, C> {
         let image = repo.image(tag)?;
         let unpacker = Unpacker::new(&image, self.progress)?;
 
-        let mut ino = 0;
-        let mut kernel = self.kernel;
+        // Write the root file entry. This allows us to set restrictive
+        // permissions on the root directory. Note that `cpio` will ignore
+        // a root directory named `.`. Therefore, we work around this by
+        // naming the directory `./.`. This tricks `cpio` into doing the
+        // permission changes for us.
         let mut initrd = GzEncoder::new(self.initrd, Compression::fast());
+        cpio::newc::Builder::new("./.")
+            .mode(0o40755)
+            .mtime(0)
+            .ino(1)
+            .uid(0)
+            .gid(0)
+            .nlink(2)
+            .write(&mut initrd, 0)
+            .finish()?;
+
+        let mut ino = 1;
+        let mut kernel = self.kernel;
         let mut cmdline = self.cmdline;
         for mut bundle in unpacker.bundles()? {
             for entry in bundle.entries()? {
