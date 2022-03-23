@@ -4,7 +4,7 @@
 use std::io::Error;
 
 use super::kexec::Kexec;
-use super::{Command, Config};
+use super::{config::Config, Command};
 
 use anyhow::Result;
 use structopt::StructOpt;

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright (C) 2021 Profian, Inc.
 
-use super::Config;
+use super::config::Config;
 
 use std::collections::HashMap;
 use std::fs::File;

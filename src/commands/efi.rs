@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright (C) 2021 Profian, Inc.
 
-use super::{Command, Config};
+use super::{config::Config, Command};
 use crate::cmdline::CmdLine;
 
 use structopt::StructOpt;
