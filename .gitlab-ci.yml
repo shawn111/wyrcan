@@ -8,12 +8,11 @@ fmt:
     - if: $CI_COMMIT_BRANCH
     - if: $CI_MERGE_REQUEST_IID
   needs: []
-  image: rust:1.56.1
+  image: rust:latest
   before_script:
-    - rm rust-toolchain.toml
     - rustup component add rustfmt
   script:
-    - RUSTC_BOOTSTRAP=1 cargo fmt --all -- --check
+    - cargo fmt --all -- --check
 
 clippy:
   rules:
@@ -21,12 +20,11 @@ clippy:
     - if: $CI_COMMIT_BRANCH
     - if: $CI_MERGE_REQUEST_IID
   needs: []
-  image: rust:1.56.1
+  image: rust:latest
   before_script:
-    - rm rust-toolchain.toml
     - rustup component add clippy
   script:
-    - RUSTC_BOOTSTRAP=1 cargo clippy -- -D warnings
+    - cargo clippy -- -D warnings
 
 debug:
   rules:
@@ -34,11 +32,9 @@ debug:
     - if: $CI_COMMIT_BRANCH
     - if: $CI_MERGE_REQUEST_IID
   needs: []
-  image: rust:1.56.1
-  before_script:
-    - rm rust-toolchain.toml
+  image: rust:latest
   script:
-    - RUSTC_BOOTSTRAP=1 cargo build
+    - cargo build
 
 release:
   rules:
@@ -46,11 +42,9 @@ release:
     - if: $CI_COMMIT_BRANCH
     - if: $CI_MERGE_REQUEST_IID
   needs: []
-  image: rust:1.56.1
-  before_script:
-    - rm rust-toolchain.toml
+  image: rust:latest
   script:
-    - RUSTC_BOOTSTRAP=1 cargo build --release
+    - cargo build --release
     - mv target/release/wyrcan wyrcan
     - strip ./wyrcan
   artifacts:

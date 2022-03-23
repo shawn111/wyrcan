@@ -56,7 +56,7 @@ impl Kexec {
 
         #[cfg(target_arch = "x86_64")]
         unsafe {
-            asm!(
+            std::arch::asm!(
                 "syscall",
                 inout("rax") libc::SYS_kexec_file_load => retval,
                 in("rdi") kernel,

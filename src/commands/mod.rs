@@ -49,11 +49,12 @@ impl<'a> From<Args<'a>> for Config {
             match k {
                 Some("wyrcan.img") | Some("wyr.img") => img = Some(v.into()),
                 Some("wyrcan.arg") | Some("wyr.arg") => arg.push(v.into()),
-                Some(k) if let Some(cap) = re.captures(k) => {
-                    let kind = cap.get(1).map(|m| m.as_str()).unwrap_or("network");
-                    let file = format!("{}.{}", &cap[2], kind);
-                    let sect = cap[3].into();
-                    let name = cap[4].into();
+                Some(k) if re.captures(k).is_some() => {
+                    let capt = re.captures(k).unwrap();
+                    let kind = capt.get(1).map(|m| m.as_str()).unwrap_or("network");
+                    let file = format!("{}.{}", &capt[2], kind);
+                    let sect = capt[3].into();
+                    let name = capt[4].into();
                     let data = v.into();
 
                     let f = net.entry(file).or_insert_with(HashMap::new);
