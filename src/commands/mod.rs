@@ -1,18 +1,13 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright (C) 2021 Profian, Inc.
 
-#[cfg(target_os = "linux")]
 mod boot;
-#[cfg(target_os = "linux")]
-mod efi;
-#[cfg(target_os = "linux")]
-mod kexec;
-#[cfg(target_os = "linux")]
-mod net;
-
 mod config;
+mod efi;
 mod extract;
+mod kexec;
 mod morph;
+mod net;
 mod unpack;
 mod unpacker;
 

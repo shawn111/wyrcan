@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright (C) 2021 Profian, Inc.
 
+#![cfg(target_os = "linux")]
+
 use std::ffi::{CStr, CString};
 use std::fmt::Arguments;
 use std::fs::File;

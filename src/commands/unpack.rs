@@ -12,7 +12,7 @@ use std::os::unix::fs::{DirBuilderExt, OpenOptionsExt};
 use std::path::{Component, PathBuf};
 
 use anyhow::{anyhow, Result};
-use libc::{S_IFBLK, S_IFCHR, S_IFDIR, S_IFIFO, S_IFLNK, S_IFMT, S_IFREG, S_IFSOCK};
+use libc::{mode_t, S_IFBLK, S_IFCHR, S_IFDIR, S_IFIFO, S_IFLNK, S_IFMT, S_IFREG, S_IFSOCK};
 use log::warn;
 use structopt::StructOpt;
 
@@ -43,7 +43,7 @@ impl Command for Unpack {
                 let mut entry = entry?;
                 let path = entry.path()?.as_ref().to_owned();
                 let head = entry.header();
-                let mode = head.mode()?;
+                let mode = mode_t::try_from(head.mode()?)?;
 
                 // Validate path to prevent escaping chroot
                 for component in path.components() {
@@ -68,14 +68,17 @@ impl Command for Unpack {
 
                 match S_IFMT & mode {
                     S_IFDIR => {
-                        DirBuilder::new().mode(mode).recursive(false).create(into)?;
+                        DirBuilder::new()
+                            .mode(mode.into())
+                            .recursive(false)
+                            .create(into)?;
                     }
 
                     S_IFREG => {
                         let mut file = OpenOptions::new()
                             .create_new(true)
                             .append(true)
-                            .mode(mode)
+                            .mode(mode.into())
                             .open(into)?;
 
                         std::io::copy(&mut entry, &mut file)?;

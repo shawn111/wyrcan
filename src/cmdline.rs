@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright (C) 2021 Profian, Inc.
 
+#![cfg(target_os = "linux")]
+
 use std::{io::ErrorKind, path::Path, str::from_utf8};
 
 pub struct CmdLine<T: AsRef<str>>(T);
