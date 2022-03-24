@@ -12,12 +12,12 @@ use std::os::unix::fs::{DirBuilderExt, OpenOptionsExt};
 use std::path::{Component, PathBuf};
 
 use anyhow::{anyhow, Result};
+use clap::Parser;
 use libc::{mode_t, S_IFBLK, S_IFCHR, S_IFDIR, S_IFIFO, S_IFLNK, S_IFMT, S_IFREG, S_IFSOCK};
 use log::warn;
-use structopt::StructOpt;
 
 /// Unpacks a container into the given directory
-#[derive(StructOpt, Debug)]
+#[derive(Parser, Debug)]
 pub struct Unpack {
     /// The container image (format: [source]name[:tag|@digest])
     image: String,
@@ -26,7 +26,7 @@ pub struct Unpack {
     output: PathBuf,
 
     /// Don't display the progress bar
-    #[structopt(short, long)]
+    #[clap(short, long)]
     quiet: bool,
 }
 

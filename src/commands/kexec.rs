@@ -14,24 +14,24 @@ use crate::commands::extract::{Extract, LookAside};
 
 use super::Command;
 
-use structopt::StructOpt;
+use clap::Parser;
 
 /// Load a container to be executed on reboot
-#[derive(StructOpt, Debug)]
+#[derive(Parser, Debug)]
 pub struct Kexec {
     /// Don't display the progress bar
-    #[structopt(short, long)]
+    #[clap(short, long)]
     pub quiet: bool,
 
     /// The container image (format: [source]name[:tag|@digest])
     pub image: String,
 
     /// The kernel command line to use after reboot
-    #[structopt(long, short)]
+    #[clap(long, short)]
     pub cmdline: Option<String>,
 
     /// Number of retries for network failures.
-    #[structopt(short, long, default_value = "5")]
+    #[clap(short, long, default_value = "5")]
     pub tries: u32,
 }
 

@@ -10,10 +10,10 @@ use std::fs::File;
 use std::io::{BufWriter, Write};
 use std::path::Path;
 
-use structopt::StructOpt;
+use clap::Parser;
 
 /// Generate a network configuration from the kernel cmdline
-#[derive(StructOpt, Debug)]
+#[derive(Parser, Debug)]
 pub struct Net {}
 
 impl Net {

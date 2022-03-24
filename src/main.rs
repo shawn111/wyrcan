@@ -11,9 +11,9 @@ mod efi;
 mod formats;
 mod iotools;
 
+use clap::Parser;
 use commands::Command;
-use structopt::StructOpt;
 
 fn main() -> anyhow::Result<()> {
-    commands::Main::from_args().execute()
+    commands::Main::parse().execute()
 }

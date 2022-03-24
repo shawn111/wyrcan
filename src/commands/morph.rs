@@ -10,25 +10,25 @@ use std::io::{sink, Sink};
 use std::path::PathBuf;
 
 use anyhow::Result;
-use structopt::StructOpt;
+use clap::Parser;
 
 /// Morphs a container into the files necessary for boot
-#[derive(StructOpt, Debug)]
+#[derive(Parser, Debug)]
 pub struct Morph {
     /// The path to store the kernel
-    #[structopt(short, long)]
+    #[clap(short, long)]
     kernel: Option<PathBuf>,
 
     /// The path to store the initrd
-    #[structopt(short, long)]
+    #[clap(short, long)]
     initrd: Option<PathBuf>,
 
     /// The path to store the cmdline
-    #[structopt(short, long)]
+    #[clap(short, long)]
     cmdline: Option<PathBuf>,
 
     /// Don't display the progress bar
-    #[structopt(short, long)]
+    #[clap(short, long)]
     quiet: bool,
 
     /// The container image (format: [source]name[:tag|@digest])

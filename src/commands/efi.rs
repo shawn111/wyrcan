@@ -6,7 +6,7 @@
 use super::{config::Config, Command};
 use crate::cmdline::CmdLine;
 
-use structopt::StructOpt;
+use clap::Parser;
 
 #[derive(Copy, Clone, Debug)]
 enum Arg {
@@ -34,7 +34,7 @@ impl Arg {
 }
 
 /// Write or clear configuration to EFI NVRAM
-#[derive(StructOpt, Debug)]
+#[derive(Parser, Debug)]
 pub struct Efi {}
 
 impl Efi {

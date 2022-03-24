@@ -9,16 +9,16 @@ use super::kexec::Kexec;
 use super::{config::Config, Command};
 
 use anyhow::Result;
-use structopt::StructOpt;
+use clap::Parser;
 
-#[derive(StructOpt, Debug)]
+#[derive(Parser, Debug)]
 pub struct Boot {
     /// Don't display the progress bar
-    #[structopt(short, long)]
+    #[clap(short, long)]
     quiet: bool,
 
     /// Number of retries for network failures.
-    #[structopt(short, long, default_value = "5")]
+    #[clap(short, long, default_value = "5")]
     tries: u32,
 }
 

@@ -11,25 +11,25 @@ mod net;
 mod unpack;
 mod unpacker;
 
-use structopt::StructOpt;
+use clap::Parser;
 
 pub trait Command {
     fn execute(self) -> anyhow::Result<()>;
 }
 
-#[derive(StructOpt, Debug)]
-#[structopt(about = "The Container Bootloader")]
+#[derive(Parser, Debug)]
+#[clap(about = "The Container Bootloader")]
 pub enum Main {
     #[cfg(target_os = "linux")]
-    #[structopt(setting(structopt::clap::AppSettings::Hidden))]
+    #[clap(hide = true)]
     Efi(efi::Efi),
 
     #[cfg(target_os = "linux")]
-    #[structopt(setting(structopt::clap::AppSettings::Hidden))]
+    #[clap(hide = true)]
     Net(net::Net),
 
     #[cfg(target_os = "linux")]
-    #[structopt(setting(structopt::clap::AppSettings::Hidden))]
+    #[clap(hide = true)]
     Boot(boot::Boot),
 
     #[cfg(target_os = "linux")]
