@@ -5,9 +5,7 @@
 #![allow(clippy::useless_conversion)]
 
 mod api;
-mod cmdline;
 mod commands;
-mod efi;
 mod formats;
 mod iotools;
 
